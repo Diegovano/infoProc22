@@ -1,0 +1,45 @@
+FPGA/Quartus/DE10_LITE_Golden_Top*
+!FPGA/Quartus/DE10_LITE_Golden_Top.htm
+!FPGA/Quartus/DE10_LITE_Golden_Top.qpf
+!FPGA/Quartus/DE10_LITE_Golden_Top.qsf
+!FPGA/Quartus/DE10_LITE_Golden_Top.sdc
+!FPGA/Quartus/DE10_LITE_Golden_Top.v
+
+FPGA/Quartus/db
+FPGA/Quartus/incremental_db
+FPGA/Quartus/nios_accelerometer
+FPGA/Quartus/.qsys_edit
+
+
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
