@@ -11,11 +11,13 @@ FPGA/Quartus/nios_accelerometer
 FPGA/Quartus/.qsys_edit
 
 FPGA/Quartus/software/infoProc22_sw/obj
+FPGA/Quartus/software/infoProc22_sw_bsp/settings.bsp
 
 *.elf
 *.map
 *.objdump
 *.html
+*.htm
 
 # Prerequisites
 *.d
