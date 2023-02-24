@@ -89,8 +89,8 @@ ACDS_VERSION := 20.1
 ELF := infoProc22_sw.elf
 
 # Paths to C, C++, and assembly source files.
-C_SRCS :=
-CXX_SRCS := gyros.cpp
+C_SRCS := gyros.c
+CXX_SRCS :=
 ASM_SRCS :=
 
 

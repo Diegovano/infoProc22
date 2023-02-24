@@ -1,11 +1,10 @@
 #include "system.h" // for TIMER_BASE and LED_TIMER_BASE
 #include "altera_avalon_timer_regs.h" // for IOWR_*
-#include "altera_up_avalon_accelerometer_spi_regs.h" // for IOWR()
+// #include "altera_up_avalon_accelerometer_spi_regs.h" // for IOWR()
 #include "sys/alt_stdio.h" // for alt_putstr()
 #include "alt_types.h" // alt_* types
 #include "sys/alt_irq.h" // for alt_irq_register()
-// #include <stdlib.h> // for abs()
-#include <cstdlib>
+#include <stdlib.h> // for abs()
 
 #define PWM_PERIOD 16
 

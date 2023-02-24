@@ -2,8 +2,8 @@
 <sch:Settings xmlns:sch="http://www.altera.com/embeddedsw/bsp/schema">
         <BspType>hal</BspType>
         <BspVersion>default</BspVersion>
-        <BspGeneratedTimeStamp>23-Feb-2023 16:13:38</BspGeneratedTimeStamp>
-        <BspGeneratedUnixTimeStamp>1677168819054</BspGeneratedUnixTimeStamp>
+        <BspGeneratedTimeStamp>24-Feb-2023 15:45:47</BspGeneratedTimeStamp>
+        <BspGeneratedUnixTimeStamp>1677253547424</BspGeneratedUnixTimeStamp>
         <BspGeneratedLocation>C:\Users\diego\OneDrive\Documents\Work\~Year_2\Information_Processing\infoProc22\FPGA\Quartus\software\infoProc22_sw_bsp</BspGeneratedLocation>
         <BspSettingsFile>settings.bsp</BspSettingsFile>
         <SopcDesignFile>C:\Users\diego\OneDrive\Documents\Work\~Year_2\Information_Processing\infoProc22\FPGA\Quartus\nios_accelerometer.sopcinfo</SopcDesignFile>

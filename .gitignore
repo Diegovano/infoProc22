@@ -10,6 +10,12 @@ FPGA/Quartus/incremental_db
 FPGA/Quartus/nios_accelerometer
 FPGA/Quartus/.qsys_edit
 
+FPGA/Quartus/software/infoProc22_sw/obj
+
+*.elf
+*.map
+*.objdump
+*.html
 
 # Prerequisites
 *.d
