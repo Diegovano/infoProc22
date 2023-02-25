@@ -10,6 +10,8 @@
 
 #define OFFSET -32
 #define PWM_PERIOD 16
+#define EST 13
+#define TAPS 49
 
 alt_8 pwm = 0;
 alt_u8 led;
@@ -41,21 +43,30 @@ void led_write(alt_u8 led_pattern) {
 //
 // ====================================
 
-float fir_quantised(alt_32 *samples, alt_32 new_sample, unsigned int taps, int *coefficients) {
-    for (unsigned int i = taps - 1; i > 0; i--) {
-        samples[i] = samples[i - 1];
-    }
-    samples[0] = new_sample;
-
+float fir_quantised(alt_32 *samples, alt_32 new_sample, unsigned int taps, int *coefficients,int count) {
+    samples[count%taps] = new_sample;
     int sum = 0;
     for (unsigned int i = 0; i < taps; i++) {
-        sum += coefficients[i] * (int)samples[i];
-
+        sum += coefficients[i] * (int)samples[(count+taps-i)%taps];
     }
-    // return sum / 8192.0f;
-    return (float)(sum >> 13);
-    // return sum / 10000.0f;
+    return (float)(sum >> EST);
 }
+
+// float fir_quantised(alt_32 *samples, alt_32 new_sample, unsigned int taps, int *coefficients) {
+//     for (unsigned int i = taps - 1; i > 0; i--) {
+//         samples[i] = samples[i - 1];
+//     }
+//     samples[0] = new_sample;
+
+//     int sum = 0;
+//     for (unsigned int i = 0; i < taps; i++) {
+//         sum += coefficients[i] * (int)samples[i];
+
+//     }
+//     // return sum / 8192.0f;
+//     return (float)(sum >> 13);
+//     // return sum / 10000.0f;
+// }
 
 // ====================================
 //
@@ -123,9 +134,10 @@ void timer_init(void (*isr)(void*, long unsigned int)) {
 
 int main()
 { 
-  const int TAPS = 49;
-  alt_32 x_read;
-  alt_32 *samples = calloc(TAPS, sizeof(alt_32));
+  alt_32 x_read, y_read, z_read;
+  alt_32 *samples_x = calloc(TAPS, sizeof(alt_32));
+  alt_32 *samples_y = calloc(TAPS, sizeof(alt_32));
+  alt_32 *samples_z = calloc(TAPS, sizeof(alt_32));
   alt_up_accelerometer_spi_dev *acc_dev;
   acc_dev = alt_up_accelerometer_spi_open_dev("/dev/accelerometer_spi");
 
@@ -133,7 +145,7 @@ int main()
       return 1;
   }
 
-  float qfiltered;
+  float qfiltered_x,qfiltered_y,qfiltered_z;
   float coefficients[] = {0.0046, 0.0074, -0.0024, -0.0071, 0.0033, 0.0001, -0.0094, 0.0040, 0.0044, -0.0133,
                           0.0030, 0.0114, -0.0179, -0.0011, 0.0223,-0.0225, -0.0109, 0.0396,-0.0263, -0.0338,
                           0.0752,-0.0289, -0.1204,  0.2879, 0.6369, 0.2879, -0.1204,-0.0289, 0.0752, -0.0338,
@@ -145,7 +157,7 @@ int main()
   int *quant_coefficients = calloc(coef_size, sizeof(int));
 
   for (int i = 0; i < coef_size; i++) {
-    quant_coefficients[i] = (int)(coefficients[i] * 8192); // closest power of 2, could be faster than multiplying by 10000
+    quant_coefficients[i] = (int)(coefficients[i] * (1<<EST)); // closest power of 2, could be faster than multiplying by 10000
   }
 
   // REGISTER INTERRUPTS
@@ -155,16 +167,19 @@ int main()
   int count = 0;
 
   while (1) {
-    qfiltered = fir_quantised(samples, x_read, 49, quant_coefficients);
-
+    qfiltered_x = fir_quantised(samples_x, x_read, TAPS, quant_coefficients,count);
+    qfiltered_y = fir_quantised(samples_y, y_read, TAPS, quant_coefficients,count);
+    qfiltered_z = fir_quantised(samples_z, z_read, TAPS, quant_coefficients,count);
     alt_up_accelerometer_spi_read_x_axis(acc_dev, &x_read);
+    alt_up_accelerometer_spi_read_y_axis(acc_dev, &y_read);
+    alt_up_accelerometer_spi_read_z_axis(acc_dev, &z_read);
 
-    convert_read(qfiltered, &level, &led);
+    convert_read(qfiltered_x, &level, &led);
 
     count++;
 
     if (count % 100 == 0) {
-      printf("A: %d\n"/*,\tV: %d,\tP: %d\n"*/, (int)(qfiltered)/*, (int)(xaccel), (int)(xpos)*/);
+      printf("A: %d x, %d y, %d z\n"/*,\tV: %d,\tP: %d\n"*/, (int)(qfiltered_x),(int)(qfiltered_y),(int)(qfiltered_z)/*, (int)(xaccel), (int)(xpos)*/);
     }
   }
   return 0;
