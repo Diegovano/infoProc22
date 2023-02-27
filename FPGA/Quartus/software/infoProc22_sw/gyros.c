@@ -52,27 +52,35 @@ float fir_quantised(alt_32 *samples, alt_32 new_sample, unsigned int taps, int *
     return (float)(sum >> EST);
 }
 
-// float fir_quantised(alt_32 *samples, alt_32 new_sample, unsigned int taps, int *coefficients) {
-//     for (unsigned int i = taps - 1; i > 0; i--) {
-//         samples[i] = samples[i - 1];
-//     }
-//     samples[0] = new_sample;
-
-//     int sum = 0;
-//     for (unsigned int i = 0; i < taps; i++) {
-//         sum += coefficients[i] * (int)samples[i];
-
-//     }
-//     // return sum / 8192.0f;
-//     return (float)(sum >> 13);
-//     // return sum / 10000.0f;
-// }
-
 // ====================================
 //
-// INTERRUPTS
+// BIAS
 //
 // ====================================
+
+void bias(float *bias_x,float *bias_y,float *bias_z,alt_32 *samples_x,alt_32 *samples_y,
+alt_32 *samples_z,int *quant_coefficients,alt_up_accelerometer_spi_dev *acc_dev){
+  int count = 0;
+  alt_32 x_read, y_read, z_read;
+  for(int j = 0;j <= 1000; j++){
+    count++;
+    alt_up_accelerometer_spi_read_x_axis(acc_dev, &x_read);
+    alt_up_accelerometer_spi_read_y_axis(acc_dev, &y_read);
+    alt_up_accelerometer_spi_read_z_axis(acc_dev, &z_read);
+    *bias_x += fir_quantised(samples_x, x_read, TAPS, quant_coefficients,count);
+    *bias_y += fir_quantised(samples_y, y_read, TAPS, quant_coefficients,count);
+    *bias_z += fir_quantised(samples_z, z_read, TAPS, quant_coefficients,count);
+    if(j == TAPS*4){
+      *bias_x =0;
+      *bias_y =0;
+      *bias_z =0;
+      count = 0;
+    }
+  }
+  *bias_x /= (float)count;
+  *bias_y /= (float)count;
+  *bias_z /= (float)count;
+}
 
 // callbacks
 
@@ -165,11 +173,12 @@ int main()
   timer_init(timeout_isr);
 
   int count = 0;
-
+  float bias_x,bias_y,bias_z;
+  bias(&bias_x,&bias_y,&bias_z,samples_x,samples_y,samples_z,quant_coefficients,acc_dev);
   while (1) {
-    qfiltered_x = fir_quantised(samples_x, x_read, TAPS, quant_coefficients,count);
-    qfiltered_y = fir_quantised(samples_y, y_read, TAPS, quant_coefficients,count);
-    qfiltered_z = fir_quantised(samples_z, z_read, TAPS, quant_coefficients,count);
+    qfiltered_x = fir_quantised(samples_x, x_read, TAPS, quant_coefficients,count) - bias_x;
+    qfiltered_y = fir_quantised(samples_y, y_read, TAPS, quant_coefficients,count) - bias_y;
+    qfiltered_z = fir_quantised(samples_z, z_read, TAPS, quant_coefficients,count) - bias_z;
     alt_up_accelerometer_spi_read_x_axis(acc_dev, &x_read);
     alt_up_accelerometer_spi_read_y_axis(acc_dev, &y_read);
     alt_up_accelerometer_spi_read_z_axis(acc_dev, &z_read);
@@ -178,8 +187,8 @@ int main()
 
     count++;
 
-    if (count % 100 == 0) {
-      printf("A: %d x, %d y, %d z\n"/*,\tV: %d,\tP: %d\n"*/, (int)(qfiltered_x),(int)(qfiltered_y),(int)(qfiltered_z)/*, (int)(xaccel), (int)(xpos)*/);
+    if (count % 1 == 0) {
+      printf("A: %d x, %d y, %d z\n"/*,\tV: %d,\tP: %d\n"*/, (int)(qfiltered_x)>>2,(int)(qfiltered_y)>>2,(int)(qfiltered_z)>>2/*, (int)(xaccel), (int)(xpos)*/);
     }
   }
   return 0;
