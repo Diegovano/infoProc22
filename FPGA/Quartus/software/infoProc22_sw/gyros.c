@@ -12,6 +12,7 @@
 #define PWM_PERIOD 16
 #define EST 13
 #define TAPS 49
+#define MSEC_SUM_TIMEOUT 5
 
 alt_8 pwm = 0;
 alt_u8 led;
@@ -19,6 +20,18 @@ alt_u32 timer = 0;
 int level;
 int pulse;
 
+// globals to try to get rid of
+double xaccel;
+double xpos;
+float qfiltered;
+
+typedef struct dimension {
+  int acc;
+  float vel;
+  float pos;
+} dim;
+
+dim x, y, z;
 
 // ====================================
 //
@@ -44,12 +57,26 @@ void led_write(alt_u8 led_pattern) {
 // ====================================
 
 float fir_quantised(alt_32 *samples, alt_32 new_sample, unsigned int taps, int *coefficients,int count) {
-    samples[count%taps] = new_sample;
+    samples[count % taps] = new_sample;
     int sum = 0;
     for (unsigned int i = 0; i < taps; i++) {
-        sum += coefficients[i] * (int)samples[(count+taps-i)%taps];
+        sum += coefficients[i] * (int)samples[(count + taps - i) % taps];
     }
     return (float)(sum >> EST);
+}
+
+// ====================================
+//
+// SUMMATION
+//
+// ====================================
+
+// void summation(int *sum, int summand) {
+//   *sum += summand * MSEC_SUM_TIMEOUT;
+// }
+
+void summation(float *sum, float summand) {
+  *sum += summand * MSEC_SUM_TIMEOUT;
 }
 
 // ====================================
@@ -58,8 +85,8 @@ float fir_quantised(alt_32 *samples, alt_32 new_sample, unsigned int taps, int *
 //
 // ====================================
 
-void bias(float *bias_x,float *bias_y,float *bias_z,alt_32 *samples_x,alt_32 *samples_y,
-alt_32 *samples_z,int *quant_coefficients,alt_up_accelerometer_spi_dev *acc_dev){
+void bias(float *x_bias, float *y_bias, float *z_bias, alt_32 *x_samples, alt_32 *y_samples,
+alt_32 *z_samples, int *quant_coefficients, alt_up_accelerometer_spi_dev *acc_dev){
   int count = 0;
   alt_32 x_read, y_read, z_read;
   for(int j = 0;j <= 1000; j++){
@@ -67,19 +94,19 @@ alt_32 *samples_z,int *quant_coefficients,alt_up_accelerometer_spi_dev *acc_dev)
     alt_up_accelerometer_spi_read_x_axis(acc_dev, &x_read);
     alt_up_accelerometer_spi_read_y_axis(acc_dev, &y_read);
     alt_up_accelerometer_spi_read_z_axis(acc_dev, &z_read);
-    *bias_x += fir_quantised(samples_x, x_read, TAPS, quant_coefficients,count);
-    *bias_y += fir_quantised(samples_y, y_read, TAPS, quant_coefficients,count);
-    *bias_z += fir_quantised(samples_z, z_read, TAPS, quant_coefficients,count);
+    *x_bias += fir_quantised(x_samples, x_read, TAPS, quant_coefficients,count);
+    *y_bias += fir_quantised(y_samples, y_read, TAPS, quant_coefficients,count);
+    *z_bias += fir_quantised(z_samples, z_read, TAPS, quant_coefficients,count);
     if(j == TAPS*4){
-      *bias_x =0;
-      *bias_y =0;
-      *bias_z =0;
+      *x_bias = 0;
+      *y_bias = 0;
+      *z_bias = 0;
       count = 0;
     }
   }
-  *bias_x /= (float)count;
-  *bias_y /= (float)count;
-  *bias_z /= (float)count;
+  *x_bias /= (float)count;
+  *y_bias /= (float)count;
+  *z_bias /= (float)count;
 }
 
 // callbacks
@@ -88,8 +115,21 @@ void timeout_isr() {
   IOWR_ALTERA_AVALON_TIMER_STATUS(TIMER_BASE, 0); // reset interrupt
   timer++;
 
+  // pulse LED 10
   if (timer % 1000 < 100) pulse = 1;
   else pulse = 0;
+
+  if (timer % MSEC_SUM_TIMEOUT == 0) {
+    summation(&x.vel, abs(x.acc) > 5 ? x.acc / 1000.0f : 0); summation(&x.pos, x.vel / 1000);
+    summation(&y.vel, abs(y.acc) > 5 ? y.acc / 1000.0f : 0); summation(&y.pos, y.vel / 1000);
+    summation(&z.vel, abs(z.acc) > 5 ? z.acc / 1000.0f : 0); summation(&z.pos, z.vel / 1000);
+  }
+
+  if (timer % MSEC_SUM_TIMEOUT * 1 == 0) {
+    x.vel = /*x.vel < 0.00000001 ? 0 :*/ x.vel * 0.99;
+    y.vel = /*y.vel < 0.00000001 ? 0 :*/ y.vel * 0.99;
+    z.vel = /*z.vel < 0.00000001 ? 0 :*/ z.vel * 0.99;
+  }
 }
 void sys_timer_isr() {
   IOWR_ALTERA_AVALON_TIMER_STATUS(LED_TIMER_BASE, 0); // reset interrupt
@@ -143,9 +183,9 @@ void timer_init(void (*isr)(void*, long unsigned int)) {
 int main()
 { 
   alt_32 x_read, y_read, z_read;
-  alt_32 *samples_x = calloc(TAPS, sizeof(alt_32));
-  alt_32 *samples_y = calloc(TAPS, sizeof(alt_32));
-  alt_32 *samples_z = calloc(TAPS, sizeof(alt_32));
+  alt_32 *x_samples = calloc(TAPS, sizeof(alt_32));
+  alt_32 *y_samples = calloc(TAPS, sizeof(alt_32));
+  alt_32 *z_samples = calloc(TAPS, sizeof(alt_32));
   alt_up_accelerometer_spi_dev *acc_dev;
   acc_dev = alt_up_accelerometer_spi_open_dev("/dev/accelerometer_spi");
 
@@ -153,7 +193,6 @@ int main()
       return 1;
   }
 
-  float qfiltered_x,qfiltered_y,qfiltered_z;
   float coefficients[] = {0.0046, 0.0074, -0.0024, -0.0071, 0.0033, 0.0001, -0.0094, 0.0040, 0.0044, -0.0133,
                           0.0030, 0.0114, -0.0179, -0.0011, 0.0223,-0.0225, -0.0109, 0.0396,-0.0263, -0.0338,
                           0.0752,-0.0289, -0.1204,  0.2879, 0.6369, 0.2879, -0.1204,-0.0289, 0.0752, -0.0338,
@@ -173,22 +212,22 @@ int main()
   timer_init(timeout_isr);
 
   int count = 0;
-  float bias_x,bias_y,bias_z;
-  bias(&bias_x,&bias_y,&bias_z,samples_x,samples_y,samples_z,quant_coefficients,acc_dev);
+  float x_bias, y_bias, z_bias;
+  bias(&x_bias, &y_bias, &z_bias, x_samples, y_samples, z_samples, quant_coefficients, acc_dev);
   while (1) {
-    qfiltered_x = fir_quantised(samples_x, x_read, TAPS, quant_coefficients,count) - bias_x;
-    qfiltered_y = fir_quantised(samples_y, y_read, TAPS, quant_coefficients,count) - bias_y;
-    qfiltered_z = fir_quantised(samples_z, z_read, TAPS, quant_coefficients,count) - bias_z;
+    x.acc = (int)(fir_quantised(x_samples, x_read, TAPS, quant_coefficients,count) - x_bias) /*& 0xFFFFFFF8*/; // remove LS 2 bits effect
+    y.acc = (int)(fir_quantised(y_samples, y_read, TAPS, quant_coefficients,count) - y_bias) /*& 0xFFFFFFF8*/;
+    z.acc = (int)(fir_quantised(z_samples, z_read, TAPS, quant_coefficients,count) - z_bias) /*& 0xFFFFFFF8*/;
     alt_up_accelerometer_spi_read_x_axis(acc_dev, &x_read);
     alt_up_accelerometer_spi_read_y_axis(acc_dev, &y_read);
     alt_up_accelerometer_spi_read_z_axis(acc_dev, &z_read);
 
-    convert_read(qfiltered_x, &level, &led);
+    convert_read(x.acc, &level, &led);
 
     count++;
 
-    if (count % 1 == 0) {
-      printf("A: %d x, %d y, %d z\n"/*,\tV: %d,\tP: %d\n"*/, (int)(qfiltered_x)>>2,(int)(qfiltered_y)>>2,(int)(qfiltered_z)>>2/*, (int)(xaccel), (int)(xpos)*/);
+    if (count % 1000 == 0) {
+      printf("A: %d x, %d y, %d z\tV: %d x, %d y, %d z \tP: %d x, %d y, %d z\n", (int)(x.acc), (int)(y.acc), (int)(z.acc), (int)(x.vel), (int)(y.vel), (int)(z.vel), (int)(x.pos), (int)(y.pos), (int)(z.pos));
     }
   }
   return 0;
