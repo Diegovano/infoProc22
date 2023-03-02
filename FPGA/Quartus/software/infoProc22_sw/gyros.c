@@ -7,12 +7,17 @@
 #include <stdlib.h> // for abs()
 #include "altera_up_avalon_accelerometer_spi.h" // for alt_up_accelerometer_spi_open_dev()
 #include "stdio.h" // for printf()
+#include "stdbool.h"
 
 #define OFFSET -32
 #define PWM_PERIOD 16
 #define EST 13
 #define TAPS 49
 #define MSEC_SUM_TIMEOUT 5
+#define MSEC_TX_TIMEOUT 100
+
+#define INTEGRATE_ON_BOARD false
+#define DEBUG_UART false
 
 alt_8 pwm = 0;
 alt_u8 led;
@@ -40,10 +45,10 @@ dim x, y, z;
 // ====================================
 
 void convert_read(alt_32 acc_read, int * level, alt_u8 * led) {
-    acc_read += OFFSET;
-    alt_u8 val = (acc_read >> 6) & 0x07;
-    *led = (8 >> val) | (8 << (8 - val));
-    *level = (acc_read >> 1) & 0x1f;
+  acc_read += OFFSET;
+  alt_u8 val = (acc_read >> 6) & 0x07;
+  *led = (8 >> val) | (8 << (8 - val));
+  *level = (acc_read >> 1) & 0x1f;
 }
 
 void led_write(alt_u8 led_pattern) {
@@ -109,7 +114,12 @@ alt_32 *z_samples, int *quant_coefficients, alt_up_accelerometer_spi_dev *acc_de
   *z_bias /= (float)count;
 }
 
-// callbacks
+// ====================================
+//
+// INTERRUPT CALLBACKS
+//
+// ====================================
+
 
 void timeout_isr() {
   IOWR_ALTERA_AVALON_TIMER_STATUS(TIMER_BASE, 0); // reset interrupt
@@ -119,6 +129,7 @@ void timeout_isr() {
   if (timer % 1000 < 100) pulse = 1;
   else pulse = 0;
 
+  #if INTEGRATE_ON_BOARD
   if (timer % MSEC_SUM_TIMEOUT == 0) {
     summation(&x.vel, abs(x.acc) > 5 ? x.acc / 1000.0f : 0); summation(&x.pos, x.vel / 1000);
     summation(&y.vel, abs(y.acc) > 5 ? y.acc / 1000.0f : 0); summation(&y.pos, y.vel / 1000);
@@ -130,7 +141,38 @@ void timeout_isr() {
     y.vel = /*y.vel < 0.00000001 ? 0 :*/ y.vel * 0.99;
     z.vel = /*z.vel < 0.00000001 ? 0 :*/ z.vel * 0.99;
   }
+  #else
+
+  if (timer % MSEC_TX_TIMEOUT == 0) {
+
+    // order must be MSB, LSB
+    alt_8 header = 0b11000010; // first two bits header, rest represent number of segments per reconstructed type. Here we are reconstructing three variables, with seven bits transmitted for each.
+    alt_8 payload[] = {(alt_8)((x.acc & 0x3F80) >> 7), (alt_8)(x.acc & 0x7F)/*, (alt_8)(y.acc & 0x7F), (alt_8)((y.acc & 0x3F80) >> 7), (alt_8)(z.acc & 0x7F), (alt_8)((z.acc & 0x3F80) >> 7)*/};
+    alt_8 trailer = 0xFF; // trailer, indicate end of stream
+
+    #if DEBUG_UART
+    printf("start: %d\n", header);
+    #else
+    putchar(header);
+    #endif
+    for (unsigned i = 0; i < sizeof(payload) / sizeof(*payload); i++)
+    {
+      #if DEBUG_UART
+      printf("%d\n", payload[i]);
+      #else
+      putchar(payload[i]);
+      #endif
+    }
+     #if DEBUG_UART
+    printf("end: %d\n", trailer);
+    #else
+    putchar(trailer);
+    #endif
+  }
+
+  #endif
 }
+
 void sys_timer_isr() {
   IOWR_ALTERA_AVALON_TIMER_STATUS(LED_TIMER_BASE, 0); // reset interrupt
 
@@ -153,24 +195,29 @@ void sys_timer_isr() {
   }
 }
 
-// setup
+// ====================================
+//
+// INTERRUPT SETUP
+//
+// ====================================
+
 
 void led_timer_init(void (*isr)(void*, long unsigned int)) {
-    IOWR_ALTERA_AVALON_TIMER_CONTROL(LED_TIMER_BASE, 0x0003);
-    IOWR_ALTERA_AVALON_TIMER_STATUS(LED_TIMER_BASE, 0);
-    IOWR_ALTERA_AVALON_TIMER_PERIODL(LED_TIMER_BASE, 0x0900);
-    IOWR_ALTERA_AVALON_TIMER_PERIODH(LED_TIMER_BASE, 0x0000);
-    alt_irq_register(LED_TIMER_IRQ, 0, isr);
-    IOWR_ALTERA_AVALON_TIMER_CONTROL(LED_TIMER_BASE, 0x0007);
+  IOWR_ALTERA_AVALON_TIMER_CONTROL(LED_TIMER_BASE, 0x0003);
+  IOWR_ALTERA_AVALON_TIMER_STATUS(LED_TIMER_BASE, 0);
+  IOWR_ALTERA_AVALON_TIMER_PERIODL(LED_TIMER_BASE, 0x0900);
+  IOWR_ALTERA_AVALON_TIMER_PERIODH(LED_TIMER_BASE, 0x0000);
+  alt_irq_register(LED_TIMER_IRQ, 0, isr);
+  IOWR_ALTERA_AVALON_TIMER_CONTROL(LED_TIMER_BASE, 0x0007);
 }
 
 void timer_init(void (*isr)(void*, long unsigned int)) {
-    IOWR_ALTERA_AVALON_TIMER_CONTROL(TIMER_BASE, 0x0003);
-    IOWR_ALTERA_AVALON_TIMER_STATUS(TIMER_BASE, 0);
-    IOWR_ALTERA_AVALON_TIMER_PERIODL(TIMER_BASE, 0xC350); // corresponds to 1ms because Bourganis said 1s is roughly 0x2FAF080
-    IOWR_ALTERA_AVALON_TIMER_PERIODH(TIMER_BASE, 0x0000);
-    alt_irq_register(TIMER_IRQ, 0, isr);
-    IOWR_ALTERA_AVALON_TIMER_CONTROL(TIMER_BASE, 0x0007);
+  IOWR_ALTERA_AVALON_TIMER_CONTROL(TIMER_BASE, 0x0003);
+  IOWR_ALTERA_AVALON_TIMER_STATUS(TIMER_BASE, 0);
+  IOWR_ALTERA_AVALON_TIMER_PERIODL(TIMER_BASE, 0xC350); // corresponds to 1ms because Bourganis said 1s is roughly 0x2FAF080
+  IOWR_ALTERA_AVALON_TIMER_PERIODH(TIMER_BASE, 0x0000);
+  alt_irq_register(TIMER_IRQ, 0, isr);
+  IOWR_ALTERA_AVALON_TIMER_CONTROL(TIMER_BASE, 0x0007);
 }
 
 // ====================================
@@ -181,7 +228,7 @@ void timer_init(void (*isr)(void*, long unsigned int)) {
 
 
 int main()
-{ 
+{
   alt_32 x_read, y_read, z_read;
   alt_32 *x_samples = calloc(TAPS, sizeof(alt_32));
   alt_32 *y_samples = calloc(TAPS, sizeof(alt_32));
@@ -226,8 +273,8 @@ int main()
 
     count++;
 
-    if (count % 1000 == 0) {
-      printf("A: %d x, %d y, %d z\tV: %d x, %d y, %d z \tP: %d x, %d y, %d z\n", (int)(x.acc), (int)(y.acc), (int)(z.acc), (int)(x.vel), (int)(y.vel), (int)(z.vel), (int)(x.pos), (int)(y.pos), (int)(z.pos));
+    if (count % 100 == 0) {
+      // printf("A: %d x, %d y, %d z\tV: %d x, %d y, %d z \tP: %d x, %d y, %d z\n", (int)(x.acc), (int)(y.acc), (int)(z.acc), (int)(x.vel), (int)(y.vel), (int)(z.vel), (int)(x.pos), (int)(y.pos), (int)(z.pos));
     }
   }
   return 0;
