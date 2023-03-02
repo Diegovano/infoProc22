@@ -22,12 +22,20 @@ def create_table(table_name, dynamodb = None):
             KeySchema=[
                 {
                     'AttributeName': 'timestamp',
-                    'KeyType': 'HASH'
+                    'KeyType': 'HASH'  #Partition Key
+                },
+                {
+                    'AttributeName': 'device_id',
+                    'KeyType': 'RANGE'  #Sort key
                 }
             ],
             AttributeDefinitions=[
                 {
                     'AttributeName': 'timestamp',
+                    'AttributeType': 'S'
+                },
+                 {
+                    'AttributeName': 'device_id',
                     'AttributeType': 'S'
                 }
             ],
@@ -46,6 +54,7 @@ def add_item(table_name, input_json, dynamodb=None):
     """ input json should be in the format of
     {
         "timestamp": "YYYY-MM-DD HH:MM:SS.ssssss",
+        "device_id" : <string>
         "accel_x": <float>,
         "accel_y": <float>,
         "accel_z": <float>
@@ -61,7 +70,7 @@ def add_item(table_name, input_json, dynamodb=None):
         return f"Error: invalid input JSON format"
      
     # Check that required keys are present in the input dictionary
-    required_keys = ['timestamp', 'accel_x', 'accel_y', 'accel_z']
+    required_keys = ['timestamp', 'device_id','accel_x', 'accel_y', 'accel_z']
     if not all(key in input_dict for key in required_keys):
         return f"Error: missing one or more required keys: {required_keys}"
 
@@ -75,16 +84,17 @@ def add_item(table_name, input_json, dynamodb=None):
     # Construct the item to be added to the table
     item = {
         'timestamp': timestamp.strftime('%Y-%m-%d %H:%M:%S.%f'),
-    
+        'device_id' : str(input_dict['device_id']),
         'accel_x' : decimal.Decimal(str(input_dict['accel_x'])),
         'accel_y' : decimal.Decimal(str(input_dict['accel_y'])),
-        'accel_z' : decimal.Decimal(str(input_dict['accel_z']))
+        'accel_z' : decimal.Decimal(str(input_dict['accel_z'])),
         }
 
     # Add the item to the table
     response = table.put_item(Item=item)
     return response
 
+#to do : make decimal of acceleration to 8 bits, get displacement from the database algorithm
 
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 table_name = 'accel_data'
@@ -96,7 +106,7 @@ server_port = 12000
 welcome_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 #bind the server to the localhost at port server_port
 welcome_socket.bind(('0.0.0.0',server_port))
-welcome_socket.listen(1)
+welcome_socket.listen()
 #ready message
 print('Server running on port ', server_port)
 
@@ -120,5 +130,7 @@ try:
 except KeyboardInterrupt:
     connection_socket.close()
     welcome_socket.close()
+
+   
 
    
