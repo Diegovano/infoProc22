@@ -1,9 +1,23 @@
 import gmplot
 import time
 import datagenerator as dg
-import re
+import boto3 
+
+
 apikey = 'AIzaSyAnqGZhAKKw4ZFbCi_0shUYXGHR0XFsWsg' # (your API key here)
 gmap = gmplot.GoogleMapPlotter(51.49920108221579, -0.17424716105896274, 23, apikey=apikey)
+
+def get_accel_data ():
+    dynamodb = boto3.resource('dynamodb')
+    table = dynamodb.Table('accel_data') 
+    response = table.scan()
+    items = response['Items']
+    data = []
+    for item in items:
+        x_value = item[accel_x]
+        y_value = item[accel_y]
+    data.append((x_value, y_value)) 
+    return data
 
 coords = [
     (51.49875113729699, -0.17692285989733622),
