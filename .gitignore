@@ -13,6 +13,8 @@ FPGA/Quartus/.qsys_edit
 FPGA/Quartus/software/infoProc22_sw/obj
 **/*_bsp/**/*
 
+**/.vscode
+
 *.elf
 *.map
 *.objdump
