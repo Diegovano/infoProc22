@@ -1,16 +1,16 @@
-FPGA/Quartus/DE10_LITE_Golden_Top*
-!FPGA/Quartus/DE10_LITE_Golden_Top.htm
-!FPGA/Quartus/DE10_LITE_Golden_Top.qpf
-!FPGA/Quartus/DE10_LITE_Golden_Top.qsf
-!FPGA/Quartus/DE10_LITE_Golden_Top.sdc
-!FPGA/Quartus/DE10_LITE_Golden_Top.v
+FPGA/DE10_LITE_Golden_Top*
+!FPGA/DE10_LITE_Golden_Top.htm
+!FPGA/DE10_LITE_Golden_Top.qpf
+!FPGA/DE10_LITE_Golden_Top.qsf
+!FPGA/DE10_LITE_Golden_Top.sdc
+!FPGA/DE10_LITE_Golden_Top.v
 
-FPGA/Quartus/db
-FPGA/Quartus/incremental_db
-FPGA/Quartus/nios_accelerometer
-FPGA/Quartus/.qsys_edit
+FPGA/db
+FPGA/incremental_db
+FPGA/nios_accelerometer
+FPGA/.qsys_edit
 
-FPGA/Quartus/software/infoProc22_sw/obj
+FPGA/software/infoProc22_sw/obj
 **/*_bsp/**/*
 
 **/.vscode
