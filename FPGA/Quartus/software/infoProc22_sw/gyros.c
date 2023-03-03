@@ -89,7 +89,7 @@ void summation(float *sum, float summand) {
 
 void bias(float *x_bias, float *y_bias, float *z_bias, alt_32 *x_samples, alt_32 *y_samples,
 alt_32 *z_samples, int *quant_coefficients, alt_up_accelerometer_spi_dev *acc_dev){
-  hex_write("LOADDD "); 
+  hex_write("REMOVING BIAS "); 
   int count = 0;
   alt_32 x_read, y_read, z_read;
   for(int j = 0;j <= 1000; j++){
@@ -110,7 +110,7 @@ alt_32 *z_samples, int *quant_coefficients, alt_up_accelerometer_spi_dev *acc_de
   *x_bias /= (float)count;
   *y_bias /= (float)count;
   *z_bias /= (float)count;
-  hex_write("COSGROVE "); 
+  hex_write("OPERATIONAL "); 
 }
 
 // callbacks

@@ -101,7 +101,7 @@ ACDS_VERSION := 20.1
 # BUILD_NUMBER: 711
 
 SETTINGS_FILE := settings.bsp
-SOPC_FILE := C:/Users/diego/OneDrive/Documents/Work/~Year_2/Information_Processing/infoProc22/FPGA/Quartus/nios_accelerometer.sopcinfo
+SOPC_FILE := C:/E2_CAS/root/infoProc22/FPGA/Quartus/nios_accelerometer.sopcinfo
 
 #-------------------------------------------------------------------------------
 #                             TOOL & COMMAND DEFINITIONS
@@ -223,6 +223,13 @@ altera_avalon_jtag_uart_driver_C_LIB_SRCS := \
 altera_avalon_pio_driver_SRCS_ROOT := drivers
 
 # altera_avalon_pio_driver sources 
+# altera_avalon_sysid_qsys_driver sources root 
+altera_avalon_sysid_qsys_driver_SRCS_ROOT := drivers
+
+# altera_avalon_sysid_qsys_driver sources 
+altera_avalon_sysid_qsys_driver_C_LIB_SRCS := \
+	$(altera_avalon_sysid_qsys_driver_SRCS_ROOT)/src/altera_avalon_sysid_qsys.c
+
 # altera_avalon_timer_driver sources root 
 altera_avalon_timer_driver_SRCS_ROOT := drivers
 
@@ -339,6 +346,7 @@ hal_C_LIB_SRCS := \
 # Assemble all component C source files 
 COMPONENT_C_LIB_SRCS += \
 	$(altera_avalon_jtag_uart_driver_C_LIB_SRCS) \
+	$(altera_avalon_sysid_qsys_driver_C_LIB_SRCS) \
 	$(altera_avalon_timer_driver_C_LIB_SRCS) \
 	$(altera_nios2_gen2_hal_driver_C_LIB_SRCS) \
 	$(altera_up_avalon_accelerometer_spi_driver_C_LIB_SRCS) \

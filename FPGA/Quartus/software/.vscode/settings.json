@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "altera_avalon_timer_regs.h": "c",
+        "system.h": "c",
+        "altera_up_avalon_accelerometer_spi.h": "c"
+    }
+}

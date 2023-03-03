@@ -2,9 +2,9 @@
  * linker.h - Linker script mapping information
  *
  * Machine generated for CPU 'cpu' in SOPC Builder design 'nios_accelerometer'
- * SOPC Builder design path: C:/Users/diego/OneDrive/Documents/Work/~Year_2/Information_Processing/infoProc22/FPGA/Quartus/nios_accelerometer.sopcinfo
+ * SOPC Builder design path: C:/E2_CAS/root/infoProc22/FPGA/Quartus/nios_accelerometer.sopcinfo
  *
- * Generated: Thu Feb 23 15:14:30 GMT 2023
+ * Generated: Wed Mar 01 18:23:09 GMT 2023
  */
 
 /*
@@ -65,9 +65,9 @@
  *
  */
 
-#define ONCHIP_MEMORY_REGION_BASE 0x20020
-#define ONCHIP_MEMORY_REGION_SPAN 95504
-#define RESET_REGION_BASE 0x20000
+#define ONCHIP_MEMORY_REGION_BASE 0x10020
+#define ONCHIP_MEMORY_REGION_SPAN 65504
+#define RESET_REGION_BASE 0x10000
 #define RESET_REGION_SPAN 32
 
 

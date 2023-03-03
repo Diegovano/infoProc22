@@ -2,9 +2,9 @@
  * alt_sys_init.c - HAL initialization source
  *
  * Machine generated for CPU 'cpu' in SOPC Builder design 'nios_accelerometer'
- * SOPC Builder design path: C:/Users/diego/OneDrive/Documents/Work/~Year_2/Information_Processing/infoProc22/FPGA/Quartus/nios_accelerometer.sopcinfo
+ * SOPC Builder design path: C:/E2_CAS/root/infoProc22/FPGA/Quartus/nios_accelerometer.sopcinfo
  *
- * Generated: Thu Feb 23 15:14:30 GMT 2023
+ * Generated: Wed Mar 01 16:44:31 GMT 2023
  */
 
 /*
@@ -60,6 +60,7 @@
 
 #include "altera_nios2_gen2_irq.h"
 #include "altera_avalon_jtag_uart.h"
+#include "altera_avalon_sysid_qsys.h"
 #include "altera_avalon_timer.h"
 #include "altera_up_avalon_accelerometer_spi.h"
 
@@ -69,6 +70,7 @@
 
 ALTERA_NIOS2_GEN2_IRQ_INSTANCE ( CPU, cpu);
 ALTERA_AVALON_JTAG_UART_INSTANCE ( JTAG_UART, jtag_uart);
+ALTERA_AVALON_SYSID_QSYS_INSTANCE ( SYSID, sysid);
 ALTERA_AVALON_TIMER_INSTANCE ( LED_TIMER, led_timer);
 ALTERA_AVALON_TIMER_INSTANCE ( TIMER, timer);
 ALTERA_UP_AVALON_ACCELEROMETER_SPI_INSTANCE ( ACCELEROMETER_SPI, accelerometer_spi);
@@ -97,5 +99,6 @@ void alt_sys_init( void )
     ALTERA_AVALON_TIMER_INIT ( LED_TIMER, led_timer);
     ALTERA_AVALON_TIMER_INIT ( TIMER, timer);
     ALTERA_AVALON_JTAG_UART_INIT ( JTAG_UART, jtag_uart);
+    ALTERA_AVALON_SYSID_QSYS_INIT ( SYSID, sysid);
     ALTERA_UP_AVALON_ACCELEROMETER_SPI_INIT ( ACCELEROMETER_SPI, accelerometer_spi);
 }

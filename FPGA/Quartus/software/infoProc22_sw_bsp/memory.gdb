@@ -1,9 +1,9 @@
 # memory.gdb - GDB memory region definitions
 #
 # Machine generated for CPU 'cpu' in SOPC Builder design 'nios_accelerometer'
-# SOPC Builder design path: C:/Users/diego/OneDrive/Documents/Work/~Year_2/Information_Processing/infoProc22/FPGA/Quartus/nios_accelerometer.sopcinfo
+# SOPC Builder design path: C:/E2_CAS/root/infoProc22/FPGA/Quartus/nios_accelerometer.sopcinfo
 #
-# Generated: Thu Feb 23 15:14:30 GMT 2023
+# Generated: Wed Mar 01 18:23:09 GMT 2023
 
 # DO NOT MODIFY THIS FILE
 #
@@ -47,4 +47,4 @@
 # by allowing GDB to cache memory contents on the host.
 
 # onchip_memory
-memory 0x20000 0x37530 cache
+memory 0x10000 0x20000 cache

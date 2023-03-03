@@ -86,11 +86,11 @@ ACDS_VERSION := 20.1
 
 # Quartus Generated JDI File. Required for resolving node instance ID's with 
 # design component names. 
-JDI_FILE := C:/Users/diego/OneDrive/Documents/Work/~Year_2/Information_Processing/infoProc22/FPGA/Quartus/DE10_LITE_Golden_Top.jdi
+JDI_FILE := C:/E2_CAS/root/infoProc22/FPGA/Quartus/DE10_LITE_Golden_Top.jdi
 
 # Qsys--generated SOPCINFO file. Required for resolving node instance ID's with 
 # design component names. 
-SOPCINFO_FILE := C:/Users/diego/OneDrive/Documents/Work/~Year_2/Information_Processing/infoProc22/FPGA/Quartus/nios_accelerometer.sopcinfo
+SOPCINFO_FILE := C:/E2_CAS/root/infoProc22/FPGA/Quartus/nios_accelerometer.sopcinfo
 
 # Big-Endian operation. 
 # setting BIG_ENDIAN is false
@@ -150,6 +150,21 @@ SOPC_NAME := nios_accelerometer
 # setting SOPC_SIMULATION_ENABLED is false
 ELF_PATCH_FLAG  += --simulation_enabled false
 
+# The SOPC System ID 
+# setting SOPC_SYSID is 0
+SOPC_SYSID_FLAG += --id=0
+ELF_PATCH_FLAG  += --id 0
+
+# The SOPC System ID Base Address 
+# setting SOPC_SYSID_BASE_ADDRESS is 0x210d0
+SOPC_SYSID_FLAG += --sidp=0x210d0
+ELF_PATCH_FLAG  += --sidp 0x210d0
+
+# The SOPC Timestamp 
+# setting SOPC_TIMESTAMP is 1677695903
+SOPC_SYSID_FLAG += --timestamp=1677695903
+ELF_PATCH_FLAG  += --timestamp 1677695903
+
 # Enable JTAG UART driver to recover when host is inactive causing buffer to 
 # full without returning error. Printf will not fail with this recovery. none 
 # setting altera_avalon_jtag_uart_driver.enable_jtag_uart_ignore_fifo_full_error is false
@@ -167,7 +182,8 @@ ELF_PATCH_FLAG  += --simulation_enabled false
 # multiple inheritance and exceptions are not supported. If false, adds 
 # -DALT_NO_C_PLUS_PLUS to ALT_CPPFLAGS in public.mk, and reduces code 
 # footprint. none 
-# setting hal.enable_c_plus_plus is true
+# setting hal.enable_c_plus_plus is false
+ALT_CPPFLAGS += -DALT_NO_C_PLUS_PLUS
 
 # When your application exits, close file descriptors, call C++ destructors, 
 # etc. Code footprint can be reduced by disabling clean exit. If disabled, adds 
