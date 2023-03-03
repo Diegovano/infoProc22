@@ -21,7 +21,7 @@
    {
       datum baseAddress
       {
-         value = "135256";
+         value = "135288";
          type = "String";
       }
    }
@@ -61,7 +61,7 @@
    {
       datum baseAddress
       {
-         value = "135248";
+         value = "135280";
          type = "String";
       }
    }
@@ -77,7 +77,23 @@
    {
       datum baseAddress
       {
-         value = "135232";
+         value = "135264";
+         type = "String";
+      }
+   }
+   element led_timer
+   {
+      datum _sortIndex
+      {
+         value = "8";
+         type = "int";
+      }
+   }
+   element led_timer.s1
+   {
+      datum baseAddress
+      {
+         value = "135168";
          type = "String";
       }
    }
@@ -109,7 +125,7 @@
    {
       datum baseAddress
       {
-         value = "135168";
+         value = "135200";
          type = "String";
       }
    }
@@ -125,7 +141,7 @@
    {
       datum baseAddress
       {
-         value = "135200";
+         value = "135232";
          type = "String";
       }
    }
@@ -143,7 +159,7 @@
  <parameter name="hideFromIPCatalog" value="false" />
  <parameter name="lockedInterfaceDefinition" value="" />
  <parameter name="maxAdditionalLatency" value="1" />
- <parameter name="projectName" value="" />
+ <parameter name="projectName">DE10_LITE_Golden_Top.qpf</parameter>
  <parameter name="sopcBorderPoints" value="false" />
  <parameter name="systemHash" value="0" />
  <parameter name="testBenchDutName" value="" />
@@ -201,7 +217,7 @@
   <parameter name="dataAddrWidth" value="18" />
   <parameter name="dataMasterHighPerformanceAddrWidth" value="1" />
   <parameter name="dataMasterHighPerformanceMapParam" value="" />
-  <parameter name="dataSlaveMapParam"><![CDATA[<address-map><slave name='onchip_memory.s1' start='0x10000' end='0x20000' type='altera_avalon_onchip_memory2.s1' /><slave name='cpu.debug_mem_slave' start='0x20800' end='0x21000' type='altera_nios2_gen2.debug_mem_slave' /><slave name='spi.spi_control_port' start='0x21000' end='0x21020' type='altera_avalon_spi.spi_control_port' /><slave name='timer.s1' start='0x21020' end='0x21040' type='altera_avalon_timer.s1' /><slave name='led.s1' start='0x21040' end='0x21050' type='altera_avalon_pio.s1' /><slave name='jtag_uart.avalon_jtag_slave' start='0x21050' end='0x21058' type='altera_avalon_jtag_uart.avalon_jtag_slave' /><slave name='accelerometer_spi.avalon_accelerometer_spi_mode_slave' start='0x21058' end='0x2105A' type='altera_up_avalon_accelerometer_spi.avalon_accelerometer_spi_mode_slave' /></address-map>]]></parameter>
+  <parameter name="dataSlaveMapParam"><![CDATA[<address-map><slave name='onchip_memory.s1' start='0x10000' end='0x20000' type='altera_avalon_onchip_memory2.s1' /><slave name='cpu.debug_mem_slave' start='0x20800' end='0x21000' type='altera_nios2_gen2.debug_mem_slave' /><slave name='led_timer.s1' start='0x21000' end='0x21020' type='altera_avalon_timer.s1' /><slave name='spi.spi_control_port' start='0x21020' end='0x21040' type='altera_avalon_spi.spi_control_port' /><slave name='timer.s1' start='0x21040' end='0x21060' type='altera_avalon_timer.s1' /><slave name='led.s1' start='0x21060' end='0x21070' type='altera_avalon_pio.s1' /><slave name='jtag_uart.avalon_jtag_slave' start='0x21070' end='0x21078' type='altera_avalon_jtag_uart.avalon_jtag_slave' /><slave name='accelerometer_spi.avalon_accelerometer_spi_mode_slave' start='0x21078' end='0x2107A' type='altera_up_avalon_accelerometer_spi.avalon_accelerometer_spi_mode_slave' /></address-map>]]></parameter>
   <parameter name="data_master_high_performance_paddr_base" value="0" />
   <parameter name="data_master_high_performance_paddr_size" value="0" />
   <parameter name="data_master_paddr_base" value="0" />
@@ -247,7 +263,7 @@
   <parameter name="instruction_master_high_performance_paddr_size" value="0" />
   <parameter name="instruction_master_paddr_base" value="0" />
   <parameter name="instruction_master_paddr_size" value="0" />
-  <parameter name="internalIrqMaskSystemInfo" value="15" />
+  <parameter name="internalIrqMaskSystemInfo" value="31" />
   <parameter name="io_regionbase" value="0" />
   <parameter name="io_regionsize" value="0" />
   <parameter name="master_addr_map" value="false" />
@@ -393,6 +409,22 @@
   <parameter name="width" value="10" />
  </module>
  <module
+   name="led_timer"
+   kind="altera_avalon_timer"
+   version="20.1"
+   enabled="1">
+  <parameter name="alwaysRun" value="false" />
+  <parameter name="counterSize" value="32" />
+  <parameter name="fixedPeriod" value="false" />
+  <parameter name="period" value="1" />
+  <parameter name="periodUnits" value="MSEC" />
+  <parameter name="resetOutput" value="false" />
+  <parameter name="snapshot" value="true" />
+  <parameter name="systemFrequency" value="50000000" />
+  <parameter name="timeoutPulseOutput" value="false" />
+  <parameter name="watchdogPulse" value="2" />
+ </module>
+ <module
    name="onchip_memory"
    kind="altera_avalon_onchip_memory2"
    version="20.1"
@@ -431,13 +463,13 @@
   <parameter name="dataWidth" value="8" />
   <parameter name="disableAvalonFlowControl" value="false" />
   <parameter name="inputClockRate" value="50000000" />
-  <parameter name="insertDelayBetweenSlaveSelectAndSClk" value="true" />
+  <parameter name="insertDelayBetweenSlaveSelectAndSClk" value="false" />
   <parameter name="insertSync" value="false" />
   <parameter name="lsbOrderedFirst" value="false" />
   <parameter name="masterSPI" value="true" />
   <parameter name="numberOfSlaves" value="1" />
   <parameter name="syncRegDepth" value="2" />
-  <parameter name="targetClockRate" value="6400" />
+  <parameter name="targetClockRate" value="100" />
   <parameter name="targetSlaveSelectToSClkDelay" value="10000.0" />
  </module>
  <module name="timer" kind="altera_avalon_timer" version="20.1" enabled="1">
@@ -458,7 +490,7 @@
    start="cpu.data_master"
    end="accelerometer_spi.avalon_accelerometer_spi_mode_slave">
   <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x00021058" />
+  <parameter name="baseAddress" value="0x00021078" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection
@@ -467,7 +499,7 @@
    start="cpu.data_master"
    end="jtag_uart.avalon_jtag_slave">
   <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x00021050" />
+  <parameter name="baseAddress" value="0x00021070" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection
@@ -490,12 +522,21 @@
  </connection>
  <connection kind="avalon" version="20.1" start="cpu.data_master" end="led.s1">
   <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x00021040" />
+  <parameter name="baseAddress" value="0x00021060" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection kind="avalon" version="20.1" start="cpu.data_master" end="timer.s1">
   <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x00021020" />
+  <parameter name="baseAddress" value="0x00021040" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="20.1"
+   start="cpu.data_master"
+   end="led_timer.s1">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x00021000" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection
@@ -504,7 +545,7 @@
    start="cpu.data_master"
    end="spi.spi_control_port">
   <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x00021000" />
+  <parameter name="baseAddress" value="0x00021020" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection
@@ -535,6 +576,7 @@
    start="clk.clk"
    end="accelerometer_spi.clk" />
  <connection kind="clock" version="20.1" start="clk.clk" end="spi.clk" />
+ <connection kind="clock" version="20.1" start="clk.clk" end="led_timer.clk" />
  <connection kind="clock" version="20.1" start="clk.clk" end="onchip_memory.clk1" />
  <connection
    kind="interrupt"
@@ -552,6 +594,9 @@
  <connection kind="interrupt" version="20.1" start="cpu.irq" end="spi.irq">
   <parameter name="irqNumber" value="3" />
  </connection>
+ <connection kind="interrupt" version="20.1" start="cpu.irq" end="led_timer.irq">
+  <parameter name="irqNumber" value="4" />
+ </connection>
  <connection kind="reset" version="20.1" start="clk.clk_reset" end="cpu.reset" />
  <connection
    kind="reset"
@@ -566,6 +611,11 @@
    start="clk.clk_reset"
    end="accelerometer_spi.reset" />
  <connection kind="reset" version="20.1" start="clk.clk_reset" end="spi.reset" />
+ <connection
+   kind="reset"
+   version="20.1"
+   start="clk.clk_reset"
+   end="led_timer.reset" />
  <connection
    kind="reset"
    version="20.1"

@@ -1,1 +1,1 @@
-python3 ../../../../HOST/host.py
+python3 ../../../HOST/host.py
