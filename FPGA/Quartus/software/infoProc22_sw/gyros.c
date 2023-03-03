@@ -1,16 +1,18 @@
 #include "system.h" // for TIMER_BASE and LED_TIMER_BASE
 #include "altera_avalon_timer_regs.h" // for IOWR_*
-// #include "altera_up_avalon_accelerometer_spi_regs.h" // for IOWR()
+#include "altera_up_avalon_accelerometer_spi_regs.h" // for IOWR()
 #include "sys/alt_stdio.h" // for alt_putstr()
 #include "alt_types.h" // alt_* types
 #include "sys/alt_irq.h" // for alt_irq_register()
 #include <stdlib.h> // for abs()
 #include "altera_up_avalon_accelerometer_spi.h" // for alt_up_accelerometer_spi_open_dev()
 #include "stdio.h" // for printf()
+#include "altera_avalon_pio_regs.h"
+#include "7segformat.h"
 
 #define OFFSET -32
 #define PWM_PERIOD 16
-#define EST 13
+#define EST 13 
 #define TAPS 49
 #define MSEC_SUM_TIMEOUT 5
 
@@ -41,10 +43,10 @@ dim x, y, z;
 
 void convert_read(alt_32 acc_read, int * level, alt_u8 * led) {
     acc_read += OFFSET;
-    alt_u8 val = (acc_read >> 6) & 0x07;
-    *led = (8 >> val) | (8 << (8 - val));
+    alt_u8 val = (acc_read >> 6) & 0x07; 
+    *led = (8 >> val) | (8 << (8 - val)); 
     *level = (acc_read >> 1) & 0x1f;
-}
+} 
 
 void led_write(alt_u8 led_pattern) {
   IOWR(LED_BASE, 0, led_pattern | pulse << 9);
@@ -72,7 +74,7 @@ float fir_quantised(alt_32 *samples, alt_32 new_sample, unsigned int taps, int *
 // ====================================
 
 // void summation(int *sum, int summand) {
-//   *sum += summand * MSEC_SUM_TIMEOUT;
+//   *sum += summand * MSEC_SUM_TIMEOUT;  
 // }
 
 void summation(float *sum, float summand) {
@@ -81,12 +83,13 @@ void summation(float *sum, float summand) {
 
 // ====================================
 //
-// BIAS
+// BIAS 
 //
 // ====================================
 
 void bias(float *x_bias, float *y_bias, float *z_bias, alt_32 *x_samples, alt_32 *y_samples,
 alt_32 *z_samples, int *quant_coefficients, alt_up_accelerometer_spi_dev *acc_dev){
+  hex_write("LOADDD "); 
   int count = 0;
   alt_32 x_read, y_read, z_read;
   for(int j = 0;j <= 1000; j++){
@@ -97,7 +100,7 @@ alt_32 *z_samples, int *quant_coefficients, alt_up_accelerometer_spi_dev *acc_de
     *x_bias += fir_quantised(x_samples, x_read, TAPS, quant_coefficients,count);
     *y_bias += fir_quantised(y_samples, y_read, TAPS, quant_coefficients,count);
     *z_bias += fir_quantised(z_samples, z_read, TAPS, quant_coefficients,count);
-    if(j == TAPS*4){
+    if(j == TAPS*4){ 
       *x_bias = 0;
       *y_bias = 0;
       *z_bias = 0;
@@ -107,6 +110,7 @@ alt_32 *z_samples, int *quant_coefficients, alt_up_accelerometer_spi_dev *acc_de
   *x_bias /= (float)count;
   *y_bias /= (float)count;
   *z_bias /= (float)count;
+  hex_write("COSGROVE "); 
 }
 
 // callbacks
@@ -114,7 +118,7 @@ alt_32 *z_samples, int *quant_coefficients, alt_up_accelerometer_spi_dev *acc_de
 void timeout_isr() {
   IOWR_ALTERA_AVALON_TIMER_STATUS(TIMER_BASE, 0); // reset interrupt
   timer++;
-
+  if (timer % 1000 ==0) shift();
   // pulse LED 10
   if (timer % 1000 < 100) pulse = 1;
   else pulse = 0;
@@ -137,7 +141,7 @@ void sys_timer_isr() {
   if (pwm < abs(level)) {
 
     if (level < 0) {
-        led_write(led << 1);
+        led_write(led << 1); 
     } else {
         led_write(led >> 1);
     }
@@ -210,23 +214,29 @@ int main()
   // REGISTER INTERRUPTS
   led_timer_init(sys_timer_isr);
   timer_init(timeout_isr);
-
+ 
   int count = 0;
   float x_bias, y_bias, z_bias;
   bias(&x_bias, &y_bias, &z_bias, x_samples, y_samples, z_samples, quant_coefficients, acc_dev);
-  while (1) {
+  int switch_datain,button_datain;
+  switch_datain = IORD_ALT_UP_ACCELEROMETER_SPI_DATA(SWITCH_BASE-1)+(IORD_ALT_UP_ACCELEROMETER_SPI_DATA(SWITCH_BASE)<<8);
+  button_datain = (~IORD_ALT_UP_ACCELEROMETER_SPI_DATA(BUTTON_BASE-1))&0b11;
+  while (1) { 
+    if ((button_datain&0b1) == 0b1){
+      bias(&x_bias, &y_bias, &z_bias, x_samples, y_samples, z_samples, quant_coefficients, acc_dev); //reset bias
+    } 
+    button_datain = (~IORD_ALT_UP_ACCELEROMETER_SPI_DATA(BUTTON_BASE-1))&0b11;
     x.acc = (int)(fir_quantised(x_samples, x_read, TAPS, quant_coefficients,count) - x_bias) /*& 0xFFFFFFF8*/; // remove LS 2 bits effect
     y.acc = (int)(fir_quantised(y_samples, y_read, TAPS, quant_coefficients,count) - y_bias) /*& 0xFFFFFFF8*/;
     z.acc = (int)(fir_quantised(z_samples, z_read, TAPS, quant_coefficients,count) - z_bias) /*& 0xFFFFFFF8*/;
     alt_up_accelerometer_spi_read_x_axis(acc_dev, &x_read);
     alt_up_accelerometer_spi_read_y_axis(acc_dev, &y_read);
     alt_up_accelerometer_spi_read_z_axis(acc_dev, &z_read);
-
     convert_read(x.acc, &level, &led);
 
-    count++;
+    count++; 
 
-    if (count % 1000 == 0) {
+    if (count % 100 == 0) {
       printf("A: %d x, %d y, %d z\tV: %d x, %d y, %d z \tP: %d x, %d y, %d z\n", (int)(x.acc), (int)(y.acc), (int)(z.acc), (int)(x.vel), (int)(y.vel), (int)(z.vel), (int)(x.pos), (int)(y.pos), (int)(z.pos));
     }
   }
