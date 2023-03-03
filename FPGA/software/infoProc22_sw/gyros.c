@@ -7,7 +7,8 @@
 #include <stdlib.h> // for abs()
 #include "altera_up_avalon_accelerometer_spi.h" // for alt_up_accelerometer_spi_open_dev()
 #include "stdio.h" // for printf()
-#include "stdbool.h"
+#include "stdbool.h" // for true & false
+#include "altera_avalon_spi.h" // for alt_avalon_spi_command()
 
 #define OFFSET -32
 #define PWM_PERIOD 16
@@ -270,6 +271,10 @@ int main()
     alt_up_accelerometer_spi_read_z_axis(acc_dev, &z_read);
 
     convert_read(x.acc, &level, &led);
+
+    alt_u8 msg = (alt_u8)x.acc;
+
+    alt_avalon_spi_command(SPI_BASE, 0, 0x1, &msg, 0x0, 0x0, 0);
 
     count++;
 
