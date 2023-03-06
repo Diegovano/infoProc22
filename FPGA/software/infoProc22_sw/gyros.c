@@ -9,6 +9,7 @@
 #include "stdio.h" // for printf()
 #include "stdbool.h" // for true & false
 #include "altera_avalon_spi.h" // for alt_avalon_spi_command()
+#include "7segformat.h"
 
 #define OFFSET -32
 #define PWM_PERIOD 16
@@ -18,13 +19,14 @@
 #define MSEC_TX_TIMEOUT 100
 
 #define INTEGRATE_ON_BOARD false
-#define DEBUG_UART false
+#define DEBUG_UART true
 
 alt_8 pwm = 0;
 alt_u8 led;
 alt_u32 timer = 0;
 int level;
-int pulse;
+int pulse; 
+int Lightshift;
 
 // globals to try to get rid of
 double xaccel;
@@ -125,7 +127,8 @@ alt_32 *z_samples, int *quant_coefficients, alt_up_accelerometer_spi_dev *acc_de
 void timeout_isr() {
   IOWR_ALTERA_AVALON_TIMER_STATUS(TIMER_BASE, 0); // reset interrupt
   timer++;
-
+  Lightshift++;
+  if (Lightshift % 1000 == 0) shift7seg();
   // pulse LED 10
   if (timer % 1000 < 100) pulse = 1;
   else pulse = 0;
@@ -230,6 +233,7 @@ void timer_init(void (*isr)(void*, long unsigned int)) {
 
 int main()
 {
+  hex_write("test test test  ");
   alt_32 x_read, y_read, z_read;
   alt_32 *x_samples = calloc(TAPS, sizeof(alt_32));
   alt_32 *y_samples = calloc(TAPS, sizeof(alt_32));
@@ -274,7 +278,7 @@ int main()
 
     alt_u8 msg = (alt_u8)x.acc;
 
-    alt_avalon_spi_command(SPI_BASE, 0, 0x1, &msg, 0x0, 0x0, 0);
+    //alt_avalon_spi_command(SPI_BASE, 0, 0x1, &msg, 0x0, 0x0, 0);
 
     count++;
 

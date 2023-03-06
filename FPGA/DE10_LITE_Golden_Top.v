@@ -81,11 +81,19 @@ module DE10_LITE_Golden_Top(
 		.accelerometer_spi_0_external_interface_I2C_SCLK      (GSENSOR_SCLK),      //                                       .I2C_SCLK
 		.accelerometer_spi_0_external_interface_G_SENSOR_CS_N (GSENSOR_CS_N), //                                       .G_SENSOR_CS_N
 		.accelerometer_spi_0_external_interface_G_SENSOR_INT  (GSENSOR_INT[1]),  //                                       .G_SENSOR_INT
-		.pio_0_external_connection_export                     (LEDR[9:0]),                      //              pio_0_external_connection.export
+		.led_external_connection_export                     	(LEDR[9:0]),                      //              pio_0_external_connection.export
 		.spi_0_external_MISO                                  (GPIO[0]),                                  //                         spi_0_external.MISO
 		.spi_0_external_MOSI                                  (GPIO[2]),                                  //                                       .MOSI
 		.spi_0_external_SCLK                                  (GPIO[4]),                                  //                                       .SCLK
-		.spi_0_external_SS_n                                  (GPIO[6])                                   //                                       .SS_n
+		.spi_0_external_SS_n                                  (GPIO[6]),                                   //                                       .SS_n
+		.hex5_external_connection_export                      (HEX5),                      //               hex5_external_connection.export
+		.hex4_external_connection_export                      (HEX4),                      //               hex4_external_connection.export
+		.hex3_external_connection_export                      (HEX3),                      //               hex3_external_connection.export
+		.hex2_external_connection_export                      (HEX2),                      //               hex2_external_connection.export
+		.hex1_external_connection_export                      (HEX1),                      //               hex1_external_connection.export
+		.hex0_external_connection_export                      (HEX0),                      //               hex0_external_connection.export
+		.switch_external_connection_export                    (SW),                    //             switch_external_connection.export
+		.button_external_connection_export                    (KEY[1:0])                     //             button_external_connection.export
 	);
 
 
