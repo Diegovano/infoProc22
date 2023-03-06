@@ -16,7 +16,7 @@
 #define EST 13
 #define TAPS 49
 #define MSEC_SUM_TIMEOUT 5
-#define MSEC_TX_TIMEOUT 100
+#define MSEC_TX_TIMEOUT 5
 
 #define INTEGRATE_ON_BOARD false
 #define DEBUG_UART true
@@ -277,8 +277,6 @@ int main()
     convert_read(x.acc, &level, &led);
 
     alt_u8 msg = (alt_u8)x.acc;
-
-    //alt_avalon_spi_command(SPI_BASE, 0, 0x1, &msg, 0x0, 0x0, 0);
 
     count++;
 
