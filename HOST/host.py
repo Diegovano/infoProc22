@@ -39,6 +39,7 @@ if __name__ == "__main__":
     data_batch = []
     x = []
     t = []
+    tcur = 0
 
     buffer = b""
 
@@ -80,7 +81,11 @@ if __name__ == "__main__":
                         # print(upconvert_bytes(data[i:i+point_length]))
                         data_batch.append(upconvert_bytes(data[i:i+point_length]))
                         x.append(upconvert_bytes(data[i:i+point_length]))
-                        t.append(time.time() - start)
+                        t.append(tcur)
+                        tdif = (datetime.now() - last_fpga_contact).microseconds / 1e3
+                        while tdif == 0:
+                            tdif = (datetime.now() - last_fpga_contact).microseconds / 1e3
+                        tcur += tdif
 
                     # print(data)
                     # if len(data_batch) >= DATA_BATCH_SIZE or datetime.now() - last_upload_time > DATA_BATCH_INTERVAL:
