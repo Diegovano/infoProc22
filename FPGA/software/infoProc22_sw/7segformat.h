@@ -11,6 +11,7 @@ char enteredText[CHARLIM];
 void getActualText(char text[CHARLIM]){
 	fullstops = 0;
 	int idx = 0;	//We need two indicies because the entered and actual text sequences need not be aligned
+	int lastoneadot = 0;
 	char currentLetter; //Keeps track of the character we are wanting to add
 	//Go through each letter in the entered text
 	for (int i = 0; i < lengthofText; i++){
@@ -25,21 +26,26 @@ void getActualText(char text[CHARLIM]){
 			enteredText[idx] = 'N';
 			enteredText[idx + 1] = 'N';
 			idx += 2;
+			lastoneadot = 0;
 			break;
 		case '.':
 			//keep track of full stops
+			if(lastoneadot||idx==0) idx++;
 			fullstops += 1<<(idx-1);
+			lastoneadot = 1;
 			break;
 		case 'W':
 			//We build the letter "W" from two "v's," so we need to change the index twice in the actual text
 			enteredText[idx] = 'V';
 			enteredText[idx + 1] = 'V';
 			idx += 2;
+			lastoneadot = 0;
 			break;
 		default:
 			//Copy the new letter into the actual text
 			enteredText[idx] = currentLetter;
 			idx++;
+			lastoneadot = 0;
 		}
 	}
 	lengthofText =idx;
@@ -127,6 +133,16 @@ int getBin(char letter){
 		return 0b10010001;
 	case 'Z':
 		return 0b10100100;
+	case '=':
+		return 0b11110110;
+	case ']':
+		return 0b11110000;
+	case '[':
+		return 0b11000110;
+	case '-':
+		return 0b10111111;
+	case '_':
+		return 0b11110111;
 	default:
 		return 0b11111111;
 	}
