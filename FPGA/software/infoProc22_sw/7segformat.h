@@ -34,6 +34,10 @@ void getActualText(char text[CHARLIM]){
 			fullstops += 1<<(idx-1);
 			lastoneadot = 1;
 			break;
+		case ' ':
+			enteredText[idx] = currentLetter;
+			idx++;
+			break;
 		case 'W':
 			//We build the letter "W" from two "v's," so we need to change the index twice in the actual text
 			enteredText[idx] = 'V';
