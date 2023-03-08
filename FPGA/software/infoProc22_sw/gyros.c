@@ -150,7 +150,7 @@ void timeout_isr() {
   timer++;
   Lightshift++;
   if (Lightshift % 1000 == 0) shift7seg();
-  if (timer > 1000 && timer%10 ==0) magnetometer();
+  if (timer > 1000 && timer%100 ==0) magnetometer();
   // pulse LED 10
   if (timer % 1000 < 100) pulse = 1;
   else pulse = 0;
