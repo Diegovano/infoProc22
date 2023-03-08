@@ -125,18 +125,25 @@ alt_32 *z_samples, int *quant_coefficients, alt_up_accelerometer_spi_dev *acc_de
 //
 // ====================================
 
-void magnetometer(){
-  alt_16 x,y,z;
-  I2C_start(MAGNETOMETER_BASE,0xd,0);
-  I2C_write(MAGNETOMETER_BASE,0x0,1);
-  I2C_start(MAGNETOMETER_BASE,0xd,1);
-  x = I2C_read(MAGNETOMETER_BASE,0);
-  x |= I2C_read(MAGNETOMETER_BASE,0)<<8;
-  y = I2C_read(MAGNETOMETER_BASE,0);
-  y |= I2C_read(MAGNETOMETER_BASE,0)<<8;
-  z = I2C_read(MAGNETOMETER_BASE,0);
-  z |= I2C_read(MAGNETOMETER_BASE,1)<<8;
-  printf("x:%d y:%d z:%d\n",x,y,z);
+//set up the magnetometer
+void magnetometer_init(){ 
+  I2C_init(MAGNETOMETER_BASE, 50000000, 100000); 
+  I2C_start(MAGNETOMETER_BASE, 0xd, 0);
+  I2C_write(MAGNETOMETER_BASE, 0x09, 0);
+  I2C_write(MAGNETOMETER_BASE, 0x1D, 1);
+}
+
+//read the magnetometer values
+void magnetometer_read(alt_16 * x,alt_16 * y,alt_16 * z){
+  I2C_start(MAGNETOMETER_BASE, 0xd, 0);
+  I2C_write(MAGNETOMETER_BASE, 0x0, 1);
+  I2C_start(MAGNETOMETER_BASE, 0xd, 1);
+  *x = I2C_read(MAGNETOMETER_BASE, 0);
+  *x |= I2C_read(MAGNETOMETER_BASE, 0) << 8;
+  *y = I2C_read(MAGNETOMETER_BASE, 0);
+  *y |= I2C_read(MAGNETOMETER_BASE, 0) << 8;
+  *z = I2C_read(MAGNETOMETER_BASE, 0);
+  *z |= I2C_read(MAGNETOMETER_BASE, 1) << 8;
 }
 
 // ====================================
@@ -146,11 +153,9 @@ void magnetometer(){
 // ====================================
 void timeout_isr() {
   IOWR_ALTERA_AVALON_TIMER_STATUS(TIMER_BASE, 0); // reset interrupt
-  int mag;
   timer++;
   Lightshift++;
   if (Lightshift % 1000 == 0) shift7seg();
-  if (timer > 1000 && timer%100 ==0) magnetometer();
   // pulse LED 10
   if (timer % 1000 < 100) pulse = 1;
   else pulse = 0;
@@ -177,20 +182,20 @@ void timeout_isr() {
     alt_8 trailer = 0xFF; // trailer, indicate end of stream
 
     #if DEBUG_UART
-    //printf("start: %d\n", header);
+    printf("start: %d\n", header);
     #else
     putchar(header);
     #endif
     for (unsigned i = 0; i < sizeof(payload) / sizeof(*payload); i++)
     {
       #if DEBUG_UART
-      //printf("%d\n", payload[i]);
+      printf("%d\n", payload[i]);
       #else
       putchar(payload[i]);
       #endif
     }
      #if DEBUG_UART
-    //printf("end: %d\n", trailer);
+    printf("end: %d\n", trailer);
     #else
     putchar(trailer);
     #endif
@@ -256,7 +261,8 @@ void timer_init(void (*isr)(void*, long unsigned int)) {
 int main()
 {
   hex_write("test....test....=]....."); 
-  alt_32 x_read, y_read, z_read;
+  alt_32 x_read_acc, y_read_acc, z_read_acc;
+  alt_16 x_read_mag, y_read_mag, z_read_mag;
   alt_u16 switches;
   alt_u8 buttons;
   alt_32 *x_samples = calloc(TAPS, sizeof(alt_32));
@@ -286,25 +292,26 @@ int main()
   // REGISTER INTERRUPTS
   led_timer_init(sys_timer_isr);
   timer_init(timeout_isr);
+
   switches = IORD_16DIRECT(SWITCH_BASE,0); //switches
   buttons = (~IORD_8DIRECT(BUTTON_BASE,0))&0b11; //buttons 
-  I2C_init(MAGNETOMETER_BASE,50000000,100000);
-  int count = 0;
-  int on = 1;
-  float x_bias, y_bias, z_bias;
-  I2C_start(MAGNETOMETER_BASE,0xd,0);
-  I2C_write(MAGNETOMETER_BASE,0x09,0);
-  I2C_write(MAGNETOMETER_BASE,0x1D,1);
-  //bias(&x_bias, &y_bias, &z_bias, x_samples, y_samples, z_samples, quant_coefficients, acc_dev);
-  while (1) {
-    x.acc = (int)(fir_quantised(x_samples, x_read, TAPS, quant_coefficients,count) - x_bias) /*& 0xFFFFFFF8*/; // remove LS 2 bits effect
-    y.acc = (int)(fir_quantised(y_samples, y_read, TAPS, quant_coefficients,count) - y_bias) /*& 0xFFFFFFF8*/;
-    z.acc = (int)(fir_quantised(z_samples, z_read, TAPS, quant_coefficients,count) - z_bias) /*& 0xFFFFFFF8*/;
-    alt_up_accelerometer_spi_read_x_axis(acc_dev, &x_read);
-    alt_up_accelerometer_spi_read_y_axis(acc_dev, &y_read);
-    alt_up_accelerometer_spi_read_z_axis(acc_dev, &z_read);
 
-    
+  int count = 0;
+  float x_bias, y_bias, z_bias;
+
+  magnetometer_init();
+  bias(&x_bias, &y_bias, &z_bias, x_samples, y_samples, z_samples, quant_coefficients, acc_dev);
+  while (1) {
+    x.acc = (int)(fir_quantised(x_samples, x_read_acc, TAPS, quant_coefficients,count) - x_bias) /*& 0xFFFFFFF8*/; // remove LS 2 bits effect
+    y.acc = (int)(fir_quantised(y_samples, y_read_acc, TAPS, quant_coefficients,count) - y_bias) /*& 0xFFFFFFF8*/;
+    z.acc = (int)(fir_quantised(z_samples, z_read_acc, TAPS, quant_coefficients,count) - z_bias) /*& 0xFFFFFFF8*/;
+    alt_up_accelerometer_spi_read_x_axis(acc_dev, &x_read_acc);
+    alt_up_accelerometer_spi_read_y_axis(acc_dev, &y_read_acc);
+    alt_up_accelerometer_spi_read_z_axis(acc_dev, &z_read_acc);
+
+    magnetometer_read(&x_read_mag, &y_read_mag, &z_read_mag);
+    //printf("x:%d y:%d z:%d\n",x_read_mag,y_read_mag,z_read_mag);  //just for testing
+
 
     convert_read(x.acc, &level, &led);
 
