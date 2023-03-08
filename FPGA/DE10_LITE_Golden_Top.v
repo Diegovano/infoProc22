@@ -93,7 +93,9 @@ module DE10_LITE_Golden_Top(
 		.hex1_external_connection_export                      (HEX1),                      //               hex1_external_connection.export
 		.hex0_external_connection_export                      (HEX0),                      //               hex0_external_connection.export
 		.switch_external_connection_export                    (SW),                    //             switch_external_connection.export
-		.button_external_connection_export                    (KEY[1:0])                     //             button_external_connection.export
+		.button_external_connection_export                    (KEY[1:0]),                     //             button_external_connection.export
+		.magnetometer_export_scl_pad_io                       (GPIO[1]),                       //                    magnetometer_export.scl_pad_io
+		.magnetometer_export_sda_pad_io                       (GPIO[3])                        //                                       .sda_pad_io
 	);
 
 

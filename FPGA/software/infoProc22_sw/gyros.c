@@ -10,6 +10,8 @@
 #include "stdbool.h" // for true & false
 #include "altera_avalon_spi.h" // for alt_avalon_spi_command()
 #include "7segformat.h"
+#include "i2c_opencores.h"
+#include "i2c_opencores_regs.h"
 
 #define OFFSET -32
 #define PWM_PERIOD 16
@@ -119,16 +121,36 @@ alt_32 *z_samples, int *quant_coefficients, alt_up_accelerometer_spi_dev *acc_de
 
 // ====================================
 //
-// INTERRUPT CALLBACKS
+// MAGNETOMETER
 //
 // ====================================
 
+void magnetometer(){
+  alt_16 x,y,z;
+  I2C_start(MAGNETOMETER_BASE,0xd,0);
+  I2C_write(MAGNETOMETER_BASE,0x0,1);
+  I2C_start(MAGNETOMETER_BASE,0xd,1);
+  x = I2C_read(MAGNETOMETER_BASE,0);
+  x |= I2C_read(MAGNETOMETER_BASE,0)<<8;
+  y = I2C_read(MAGNETOMETER_BASE,0);
+  y |= I2C_read(MAGNETOMETER_BASE,0)<<8;
+  z = I2C_read(MAGNETOMETER_BASE,0);
+  z |= I2C_read(MAGNETOMETER_BASE,1)<<8;
+  printf("x:%d y:%d z:%d\n",x,y,z);
+}
 
+// ====================================
+//
+// INTERRUPT CALLBACKS
+//
+// ====================================
 void timeout_isr() {
   IOWR_ALTERA_AVALON_TIMER_STATUS(TIMER_BASE, 0); // reset interrupt
+  int mag;
   timer++;
   Lightshift++;
   if (Lightshift % 1000 == 0) shift7seg();
+  if (timer > 1000 && timer%10 ==0) magnetometer();
   // pulse LED 10
   if (timer % 1000 < 100) pulse = 1;
   else pulse = 0;
@@ -155,20 +177,20 @@ void timeout_isr() {
     alt_8 trailer = 0xFF; // trailer, indicate end of stream
 
     #if DEBUG_UART
-    printf("start: %d\n", header);
+    //printf("start: %d\n", header);
     #else
     putchar(header);
     #endif
     for (unsigned i = 0; i < sizeof(payload) / sizeof(*payload); i++)
     {
       #if DEBUG_UART
-      printf("%d\n", payload[i]);
+      //printf("%d\n", payload[i]);
       #else
       putchar(payload[i]);
       #endif
     }
      #if DEBUG_UART
-    printf("end: %d\n", trailer);
+    //printf("end: %d\n", trailer);
     #else
     putchar(trailer);
     #endif
@@ -233,13 +255,15 @@ void timer_init(void (*isr)(void*, long unsigned int)) {
 
 int main()
 {
-  hex_write("test test test  ");
+  hex_write("test....test....=]....."); 
   alt_32 x_read, y_read, z_read;
+  alt_u16 switches;
+  alt_u8 buttons;
   alt_32 *x_samples = calloc(TAPS, sizeof(alt_32));
   alt_32 *y_samples = calloc(TAPS, sizeof(alt_32));
   alt_32 *z_samples = calloc(TAPS, sizeof(alt_32));
   alt_up_accelerometer_spi_dev *acc_dev;
-  acc_dev = alt_up_accelerometer_spi_open_dev("/dev/accelerometer_spi");
+  acc_dev = alt_up_accelerometer_spi_open_dev("/dev/accelerometer_spi"); 
 
   if (acc_dev == NULL) { // if return 1, check if the spi ip name is "accelerometer_spi"
       return 1;
@@ -262,10 +286,16 @@ int main()
   // REGISTER INTERRUPTS
   led_timer_init(sys_timer_isr);
   timer_init(timeout_isr);
-
+  switches = IORD_16DIRECT(SWITCH_BASE,0); //switches
+  buttons = (~IORD_8DIRECT(BUTTON_BASE,0))&0b11; //buttons 
+  I2C_init(MAGNETOMETER_BASE,50000000,100000);
   int count = 0;
+  int on = 1;
   float x_bias, y_bias, z_bias;
-  bias(&x_bias, &y_bias, &z_bias, x_samples, y_samples, z_samples, quant_coefficients, acc_dev);
+  I2C_start(MAGNETOMETER_BASE,0xd,0);
+  I2C_write(MAGNETOMETER_BASE,0x09,0);
+  I2C_write(MAGNETOMETER_BASE,0x1D,1);
+  //bias(&x_bias, &y_bias, &z_bias, x_samples, y_samples, z_samples, quant_coefficients, acc_dev);
   while (1) {
     x.acc = (int)(fir_quantised(x_samples, x_read, TAPS, quant_coefficients,count) - x_bias) /*& 0xFFFFFFF8*/; // remove LS 2 bits effect
     y.acc = (int)(fir_quantised(y_samples, y_read, TAPS, quant_coefficients,count) - y_bias) /*& 0xFFFFFFF8*/;
@@ -273,6 +303,8 @@ int main()
     alt_up_accelerometer_spi_read_x_axis(acc_dev, &x_read);
     alt_up_accelerometer_spi_read_y_axis(acc_dev, &y_read);
     alt_up_accelerometer_spi_read_z_axis(acc_dev, &z_read);
+
+    
 
     convert_read(x.acc, &level, &led);
 
