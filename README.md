@@ -2,7 +2,7 @@
 
 ## Oliver Cosgrove, Corey O'Malley, Patrick Beart, Chang Liu, Anastasis Varvarigos & Diego Van Overberghe
 
-To set up the FPGA for I2C: 
+To set up the FPGA for I2C:
 
 - download the extract the contents of `i2c_opencores_ollie_version.zip` to `C:\intelFPGA_lite\20.1\ip`
 - `i2c_opencores_ollie_version.zip` can be found in `QUARTUS/`
