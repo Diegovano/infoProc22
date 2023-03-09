@@ -16,7 +16,7 @@ DATA_BATCH_INTERVAL = timedelta(seconds=2) # Send at most every 2 seconds
 
 WARN_NO_DATA_AFTER = timedelta(seconds=5) # If no data received in the last five seconds, warn
 
-def upconvert_bytes(the_bytes):
+def upconvert_bytes(the_bytes, signed: bool):
     #print(f"{the_bytes[0]:b}")
 
     out = 0
@@ -27,7 +27,7 @@ def upconvert_bytes(the_bytes):
         iteration += 1
     
     # out = out << 4
-    if the_bytes[0] & 0b01000000:
+    if signed and the_bytes[0] & 0b01000000: # if signed and payload MSB high, sign extend
         #return out - 2**(8*len(the_bytes))
         return out - 2 ** 14
     else:
@@ -69,8 +69,9 @@ if __name__ == "__main__":
                     continue
                 if len(data) < 1:
                     continue
-                if (data[0] & 0b11000000) == 0b11000000:
-                    point_length = data[0] & 0b1111
+                if (data[0] & 0b11000000) == 0b11000000: # Special header received
+                    sgn = data[0] & 0b00100000 # represents signed or not
+                    point_length = data[0] & 0b00011111 # last 5 bits represent size
                     data = data[1:]
                     
                     if len(data) % point_length != 0:
@@ -79,8 +80,8 @@ if __name__ == "__main__":
                         continue
                     for i in range(len(data)//point_length):
                         # print(upconvert_bytes(data[i:i+point_length]))
-                        data_batch.append(upconvert_bytes(data[i:i+point_length]))
-                        x.append(upconvert_bytes(data[i:i+point_length]))
+                        data_batch.append(upconvert_bytes(data[i:i+point_length], sgn))
+                        x.append(upconvert_bytes(data[i:i+point_length], sgn))
                         t.append(tcur)
                         tdif = (datetime.now() - last_fpga_contact).microseconds / 1e3
                         while tdif == 0:
@@ -93,8 +94,6 @@ if __name__ == "__main__":
                     #     data_batch = []
                     #     last_upload_time = datetime.now()
     except KeyboardInterrupt:
-        # for i in range(len(x)):
-        #     print(str(t[i]) + ": " + str(x[i]))
         fig, ax = plt.subplots()
         ax.plot(t, x)
         plt.show()
