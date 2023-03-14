@@ -21,7 +21,7 @@
 #define MSEC_TX_TIMEOUT 5
 
 #define INTEGRATE_ON_BOARD false
-#define DEBUG_UART true
+#define DEBUG_UART false
 
 alt_8 pwm = 0;
 alt_u8 led;
@@ -30,10 +30,14 @@ int level;
 int pulse; 
 int Lightshift;
 
+int stepcount = 0;
+alt_u32 last_step_at = 0;
+
 // globals to try to get rid of
 double xaccel;
 double xpos;
 float qfiltered;
+alt_u16 acc_sq;
 
 typedef struct dimension {
   int acc;
@@ -95,28 +99,30 @@ void summation(float *sum, float summand) {
 //
 // ====================================
 
-void bias(float *x_bias, float *y_bias, float *z_bias, alt_32 *x_samples, alt_32 *y_samples,
+alt_u32 bias(alt_u32 *x_samples, alt_32 *y_samples,
 alt_32 *z_samples, int *quant_coefficients, alt_up_accelerometer_spi_dev *acc_dev){
   int count = 0;
+  float x_bias = 0, y_bias = 0, z_bias = 0;
   alt_32 x_read, y_read, z_read;
   for(int j = 0;j <= 1000; j++){
     count++;
     alt_up_accelerometer_spi_read_x_axis(acc_dev, &x_read);
     alt_up_accelerometer_spi_read_y_axis(acc_dev, &y_read);
     alt_up_accelerometer_spi_read_z_axis(acc_dev, &z_read);
-    *x_bias += fir_quantised(x_samples, x_read, TAPS, quant_coefficients,count);
-    *y_bias += fir_quantised(y_samples, y_read, TAPS, quant_coefficients,count);
-    *z_bias += fir_quantised(z_samples, z_read, TAPS, quant_coefficients,count);
+    x_bias += fir_quantised(x_samples, x_read, TAPS, quant_coefficients,count);
+    y_bias += fir_quantised(y_samples, y_read, TAPS, quant_coefficients,count);
+    z_bias += fir_quantised(z_samples, z_read, TAPS, quant_coefficients,count);
     if(j == TAPS*4){
-      *x_bias = 0;
-      *y_bias = 0;
-      *z_bias = 0;
+      x_bias = 0;
+      y_bias = 0;
+      z_bias = 0;
       count = 0;
     }
   }
-  *x_bias /= (float)count;
-  *y_bias /= (float)count;
-  *z_bias /= (float)count;
+  x_bias /= (float)count;
+  y_bias /= (float)count;
+  z_bias /= (float)count;
+  return abs(x_bias * x_bias + y_bias * y_bias + z_bias * z_bias);
 }
 
 // ====================================
@@ -161,10 +167,16 @@ void timeout_isr() {
   #else
 
   if (timer % MSEC_TX_TIMEOUT == 0) {
-
+    if (timer - last_step_at > 500 && acc_sq > 1500) {
+      last_step_at = timer;
+      char buffer[5];
+      itoa(++stepcount, buffer, 10);
+      hex_write(buffer);
+    }
     // order must be MSB, LSB
-    alt_8 header = 0b11000010; // first two bits header, rest represent number of segments per reconstructed type. Here we are reconstructing three variables, with seven bits transmitted for each.
-    alt_8 payload[] = {(alt_8)((x.acc & 0x3F80) >> 7), (alt_8)(x.acc & 0x7F)/*, (alt_8)(y.acc & 0x7F), (alt_8)((y.acc & 0x3F80) >> 7), (alt_8)(z.acc & 0x7F), (alt_8)((z.acc & 0x3F80) >> 7)*/};
+    alt_8 header = 0b11000010; // first two bits header, third unsigned, rest represent number of segments per reconstructed type. Here we are reconstructing one variable, with 14 bits transmitted for each.
+    // alt_8 payload[] = {(alt_8)((x.acc & 0x3F80) >> 7), (alt_8)(x.acc & 0x7F)/*, (alt_8)(y.acc & 0x7F), (alt_8)((y.acc & 0x3F80) >> 7), (alt_8)(z.acc & 0x7F), (alt_8)((z.acc & 0x3F80) >> 7)*/};
+    alt_8 payload[] = {(alt_u8)((acc_sq & 0x3F80) >> 7), (alt_u8)(acc_sq & 0x7F)};
     alt_8 trailer = 0xFF; // trailer, indicate end of stream
 
     #if DEBUG_UART
@@ -244,6 +256,11 @@ void timer_init(void (*isr)(void*, long unsigned int)) {
 // ====================================
 
 
+alt_u16 accel_abs_sq(dim x, dim y, dim z, alt_u32 grav_bias) {
+  return abs(x.acc * x.acc + y.acc * y.acc + z.acc * z.acc - grav_bias) >> 5;
+}
+
+
 int main()
 {
   hex_write("test....test....=]....."); 
@@ -283,7 +300,6 @@ int main()
   switches = IORD_16DIRECT(SWITCH_BASE,0); //switches
 
   int count = 0;
-  float x_bias, y_bias, z_bias;
   char str[32];
   GY_271_init(MAGNETOMETER_BASE,50000000,100000);
   GY_271_Reset(); 
@@ -291,9 +307,9 @@ int main()
   //bias(&x_bias, &y_bias, &z_bias, x_samples, y_samples, z_samples, quant_coefficients, acc_dev);
   while (1) {
     buttons = (~IORD_8DIRECT(BUTTON_BASE,0))&0b11; //buttons 
-    x.acc = (int)(fir_quantised(x_samples, x_read_acc, TAPS, quant_coefficients,count) - x_bias) /*& 0xFFFFFFF8*/; // remove LS 2 bits effect
-    y.acc = (int)(fir_quantised(y_samples, y_read_acc, TAPS, quant_coefficients,count) - y_bias) /*& 0xFFFFFFF8*/;
-    z.acc = (int)(fir_quantised(z_samples, z_read_acc, TAPS, quant_coefficients,count) - z_bias) /*& 0xFFFFFFF8*/;
+    x.acc = (int)(fir_quantised(x_samples, x_read_acc, TAPS, quant_coefficients,count)) /*& 0xFFFFFFF8*/; // remove LS 2 bits effect
+    y.acc = (int)(fir_quantised(y_samples, y_read_acc, TAPS, quant_coefficients,count)) /*& 0xFFFFFFF8*/;
+    z.acc = (int)(fir_quantised(z_samples, z_read_acc, TAPS, quant_coefficients,count)) /*& 0xFFFFFFF8*/;
     alt_up_accelerometer_spi_read_x_axis(acc_dev, &x_read_acc);
     alt_up_accelerometer_spi_read_y_axis(acc_dev, &y_read_acc);
     alt_up_accelerometer_spi_read_z_axis(acc_dev, &z_read_acc);
