@@ -99,7 +99,7 @@ void summation(float *sum, float summand) {
 //
 // ====================================
 
-alt_u32 bias(alt_u32 *x_samples, alt_32 *y_samples,
+alt_u32 bias(alt_32 *x_samples, alt_32 *y_samples,
 alt_32 *z_samples, int *quant_coefficients, alt_up_accelerometer_spi_dev *acc_dev){
   int count = 0;
   float x_bias = 0, y_bias = 0, z_bias = 0;
@@ -147,9 +147,9 @@ void timeout_isr() {
   IOWR_ALTERA_AVALON_TIMER_STATUS(TIMER_BASE, 0); // reset interrupt
   timer++;
   Lightshift++;
-  if (Lightshift % 1000 == 0) shift7seg();
+  if (Lightshift % 1000 == 0) shift7seg(); 
   // pulse LED 10
-  if (timer % 1000 < 100) pulse = 1;
+  if (timer % 1000 < 100) pulse = 1; 
   else pulse = 0;
 
   #if INTEGRATE_ON_BOARD
@@ -167,11 +167,13 @@ void timeout_isr() {
   #else
 
   if (timer % MSEC_TX_TIMEOUT == 0) {
-    if (timer - last_step_at > 500 && acc_sq > 1500) {
+    if (timer - last_step_at > 250 && acc_sq > 1500) {
       last_step_at = timer;
-      char buffer[5];
+      char buffer[5]; 
       itoa(++stepcount, buffer, 10);
-      hex_write(buffer);
+      hex_write_clear();
+      hex_write_right(buffer);
+      hex_write_left(buffer);
     }
     // order must be MSB, LSB
     alt_8 header = 0b11000010; // first two bits header, third unsigned, rest represent number of segments per reconstructed type. Here we are reconstructing one variable, with 14 bits transmitted for each.
@@ -209,7 +211,7 @@ void sys_timer_isr() {
 
     if (level < 0) {
         led_write(led << 1);
-    } else {
+    } else { 
         led_write(led >> 1);
     }
 
@@ -263,7 +265,8 @@ alt_u16 accel_abs_sq(dim x, dim y, dim z, alt_u32 grav_bias) {
 
 int main()
 {
-  hex_write("test....test....=]....."); 
+  // hex_write_left("STILL!");
+  hex_write_left("COREYOMALLEY");
   alt_32 x_read_acc, y_read_acc, z_read_acc;
   alt_16 x_read_mag, y_read_mag, z_read_mag;
   alt_u8 ready;
@@ -271,7 +274,7 @@ int main()
   alt_u8 buttons;
   alt_32 *x_samples = calloc(TAPS, sizeof(alt_32));
   alt_32 *y_samples = calloc(TAPS, sizeof(alt_32));
-  alt_32 *z_samples = calloc(TAPS, sizeof(alt_32));
+  alt_32 *z_samples = calloc(TAPS, sizeof(alt_32)); 
   alt_up_accelerometer_spi_dev *acc_dev;
   acc_dev = alt_up_accelerometer_spi_open_dev("/dev/accelerometer_spi"); 
 
@@ -305,6 +308,10 @@ int main()
   GY_271_Reset(); 
   GY_271_setMode(1,0,2,1,1,1); 
   //bias(&x_bias, &y_bias, &z_bias, x_samples, y_samples, z_samples, quant_coefficients, acc_dev);
+  alt_u32 grav_bias = bias(x_samples, y_samples, z_samples, quant_coefficients, acc_dev);
+  hex_write_left("READY!");
+  // hex_write_clear();
+  // hex_write_left("AAAAA");
   while (1) {
     buttons = (~IORD_8DIRECT(BUTTON_BASE,0))&0b11; //buttons 
     x.acc = (int)(fir_quantised(x_samples, x_read_acc, TAPS, quant_coefficients,count)) /*& 0xFFFFFFF8*/; // remove LS 2 bits effect
@@ -337,9 +344,9 @@ int main()
       GY_271_setMode(0,1,2,1,1,1);
     }
 
-    convert_read(x.acc, &level, &led);
+    // convert_read(x.acc, &level, &led);
 
-    alt_u8 msg = (alt_u8)x.acc;
+    // alt_u8 msg = (alt_u8)x.acc;
 
     count++;
 

@@ -4,7 +4,7 @@
 #include "altera_avalon_timer_regs.h"
 #include "system.h"
 #define CHARLIM 32	//Maximum character lengthofText of what the user places in memory.  Increase to allow longer sequences
-int TrackPosition = 0,lengthofText,fullstops;
+int TrackPosition = 0, lengthofText, fullstops;
 char enteredText[CHARLIM];
 
 //Takes the user's input and only uses the allowed letters.  Returns the lengthofText of the string entered
@@ -81,6 +81,7 @@ int getBin(char letter){
 	case '4':
 		return 0b10011001;
 	case '5':
+		return 0b10010010;
 	case '6':
 		return 0b10000010;
 	case '7':
@@ -106,7 +107,7 @@ int getBin(char letter){
 	case 'H':
 		return 0b10001001;
 	case 'I':
-		return 0b11111001;
+		return 0b11001111;
 	case 'J':
 		return 0b11110001;
 	case 'K':
@@ -147,37 +148,70 @@ int getBin(char letter){
 		return 0b10111111;
 	case '_':
 		return 0b11110111;
+	case '!':
+		return 0b01111101;
 	default:
 		return 0b11111111;
 	}
 }
 
 
-void hex_write(char text[CHARLIM]){
+void hex_write_left(char text[CHARLIM]) {
 	TrackPosition=0;
 	
 	findL(text);
 	getActualText(text);
-	if(lengthofText<=6){
-		for(int i = lengthofText;i<6;i++){
+	if(lengthofText<=6) {
+		for(int i = lengthofText; i < 6; i++) {
 			enteredText[i] = '\0';
 		}
 	}
-	IOWR(HEX5_BASE, 0, (fullstops&(1<<0))<<7 ^ getBin(enteredText[0]));
-	IOWR(HEX4_BASE, 0, (fullstops&(1<<1))<<6 ^ getBin(enteredText[1]));
-	IOWR(HEX3_BASE, 0, (fullstops&(1<<2))<<5 ^ getBin(enteredText[2]));
-	IOWR(HEX2_BASE, 0, (fullstops&(1<<3))<<4 ^ getBin(enteredText[3]));
-	IOWR(HEX1_BASE, 0, (fullstops&(1<<4))<<3 ^ getBin(enteredText[4]));
-	IOWR(HEX0_BASE, 0, (fullstops&(1<<5))<<2 ^ getBin(enteredText[5]));
+	switch(lengthofText) { // fallthroughs intentional
+		default: // fallthrough
+		case 6: IOWR(HEX0_BASE, 0, (fullstops & (1 << 5)) << 2 ^ getBin(enteredText[5]));
+		case 5: IOWR(HEX1_BASE, 0, (fullstops & (1 << 4)) << 3 ^ getBin(enteredText[4]));
+		case 4: IOWR(HEX2_BASE, 0, (fullstops & (1 << 3)) << 4 ^ getBin(enteredText[3]));
+		case 3: IOWR(HEX3_BASE, 0, (fullstops & (1 << 2)) << 5 ^ getBin(enteredText[2]));
+		case 2: IOWR(HEX4_BASE, 0, (fullstops & (1 << 1)) << 6 ^ getBin(enteredText[1]));
+		case 1: IOWR(HEX5_BASE, 0, (fullstops & (1 << 0)) << 7 ^ getBin(enteredText[0]));
+	}
 }
 
-void shift7seg(){
+void hex_write_right(char text[CHARLIM]) {
+	findL(text);
+	getActualText(text);
+	if(lengthofText <= 6){
+		for(int i = lengthofText; i < 6; i++){
+			enteredText[i] = '\0';
+		}
+	}
+	int shift = 6 - lengthofText;
+	switch(lengthofText) { // fallthroughs intentional
+		case 6: IOWR(HEX5_BASE, 0, getBin(enteredText[lengthofText - 6]));
+		case 5: IOWR(HEX4_BASE, 0, getBin(enteredText[lengthofText - 5]));
+		case 4:	IOWR(HEX3_BASE, 0, getBin(enteredText[lengthofText - 4]));
+		case 3:	IOWR(HEX2_BASE, 0, getBin(enteredText[lengthofText - 3]));
+		case 2: IOWR(HEX1_BASE, 0, getBin(enteredText[lengthofText - 2]));
+		case 1: IOWR(HEX0_BASE, 0, getBin(enteredText[lengthofText - 1]));
+	}
+}
+
+void shift7seg() {
 	TrackPosition++;
 	if(lengthofText <= 6) return;
-	IOWR(HEX5_BASE, 0, ((fullstops&(1<<((TrackPosition)%lengthofText)))!=0)<<7 ^ getBin(enteredText[(TrackPosition)%lengthofText]));
-	IOWR(HEX4_BASE, 0, ((fullstops&(1<<((TrackPosition+1)%lengthofText)))!=0)<<7 ^ getBin(enteredText[(TrackPosition+1)%lengthofText]));
-	IOWR(HEX3_BASE, 0, ((fullstops&(1<<((TrackPosition+2)%lengthofText)))!=0)<<7 ^ getBin(enteredText[(TrackPosition+2)%lengthofText]));
-	IOWR(HEX2_BASE, 0, ((fullstops&(1<<((TrackPosition+3)%lengthofText)))!=0)<<7 ^ getBin(enteredText[(TrackPosition+3)%lengthofText]));
-	IOWR(HEX1_BASE, 0, ((fullstops&(1<<((TrackPosition+4)%lengthofText)))!=0)<<7 ^ getBin(enteredText[(TrackPosition+4)%lengthofText]));
-	IOWR(HEX0_BASE, 0, ((fullstops&(1<<((TrackPosition+5)%lengthofText)))!=0)<<7 ^ getBin(enteredText[(TrackPosition+5)%lengthofText]));
+	IOWR(HEX5_BASE, 0, ((fullstops & (1 << ((TrackPosition) % lengthofText))) != 0) << 7 ^ getBin(enteredText[(TrackPosition) % lengthofText]));
+	IOWR(HEX4_BASE, 0, ((fullstops & (1 << ((TrackPosition + 1) % lengthofText))) != 0) << 7 ^ getBin(enteredText[(TrackPosition + 1) % lengthofText]));
+	IOWR(HEX3_BASE, 0, ((fullstops & (1 << ((TrackPosition + 2) % lengthofText))) != 0) << 7 ^ getBin(enteredText[(TrackPosition + 2) % lengthofText]));
+	IOWR(HEX2_BASE, 0, ((fullstops & (1 << ((TrackPosition + 3) % lengthofText))) != 0) << 7 ^ getBin(enteredText[(TrackPosition + 3) % lengthofText]));
+	IOWR(HEX1_BASE, 0, ((fullstops & (1 << ((TrackPosition + 4) % lengthofText))) != 0) << 7 ^ getBin(enteredText[(TrackPosition + 4) % lengthofText]));
+	IOWR(HEX0_BASE, 0, ((fullstops & (1 << ((TrackPosition + 5) % lengthofText))) != 0) << 7 ^ getBin(enteredText[(TrackPosition + 5) % lengthofText]));
+}
+
+void hex_write_clear() {
+	IOWR(HEX5_BASE, 0, 255);
+	IOWR(HEX4_BASE, 0, 255);
+	IOWR(HEX3_BASE, 0, 255);
+	IOWR(HEX2_BASE, 0, 255);
+	IOWR(HEX1_BASE, 0, 255);
+	IOWR(HEX0_BASE, 0, 255);
 }
