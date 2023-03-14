@@ -10,8 +10,8 @@
 #include "stdbool.h" // for true & false
 #include "altera_avalon_spi.h" // for alt_avalon_spi_command()
 #include "7segformat.h"
-#include "i2c_opencores.h"
-#include "i2c_opencores_regs.h"
+#include "GY271.h"
+#include "math.h"
 
 #define OFFSET -32
 #define PWM_PERIOD 16
@@ -125,25 +125,11 @@ alt_32 *z_samples, int *quant_coefficients, alt_up_accelerometer_spi_dev *acc_de
 //
 // ====================================
 
-//set up the magnetometer
-void magnetometer_init(){ 
-  I2C_init(MAGNETOMETER_BASE, 50000000, 100000); 
-  I2C_start(MAGNETOMETER_BASE, 0xd, 0);
-  I2C_write(MAGNETOMETER_BASE, 0x09, 0);
-  I2C_write(MAGNETOMETER_BASE, 0x1D, 1);
-}
-
 //read the magnetometer values
-void magnetometer_read(alt_16 * x,alt_16 * y,alt_16 * z){
-  I2C_start(MAGNETOMETER_BASE, 0xd, 0);
-  I2C_write(MAGNETOMETER_BASE, 0x0, 1);
-  I2C_start(MAGNETOMETER_BASE, 0xd, 1);
-  *x = I2C_read(MAGNETOMETER_BASE, 0);
-  *x |= I2C_read(MAGNETOMETER_BASE, 0) << 8;
-  *y = I2C_read(MAGNETOMETER_BASE, 0);
-  *y |= I2C_read(MAGNETOMETER_BASE, 0) << 8;
-  *z = I2C_read(MAGNETOMETER_BASE, 0);
-  *z |= I2C_read(MAGNETOMETER_BASE, 1) << 8;
+void magnetometer_read(alt_16 * x,alt_16 * y,alt_16 * z,alt_u8 * ready){
+  *x = GY_271_Read_x();
+  *y = GY_271_Read_y();
+  *z = GY_271_Read_z();
 }
 
 // ====================================
@@ -182,20 +168,20 @@ void timeout_isr() {
     alt_8 trailer = 0xFF; // trailer, indicate end of stream
 
     #if DEBUG_UART
-    printf("start: %d\n", header);
+    //printf("start: %d\n", header);
     #else
     putchar(header);
     #endif
     for (unsigned i = 0; i < sizeof(payload) / sizeof(*payload); i++)
     {
       #if DEBUG_UART
-      printf("%d\n", payload[i]);
+      //printf("%d\n", payload[i]);
       #else
       putchar(payload[i]);
       #endif
     }
      #if DEBUG_UART
-    printf("end: %d\n", trailer);
+    //printf("end: %d\n", trailer);
     #else
     putchar(trailer);
     #endif
@@ -263,6 +249,7 @@ int main()
   hex_write("test....test....=]....."); 
   alt_32 x_read_acc, y_read_acc, z_read_acc;
   alt_16 x_read_mag, y_read_mag, z_read_mag;
+  alt_u8 ready;
   alt_u16 switches;
   alt_u8 buttons;
   alt_32 *x_samples = calloc(TAPS, sizeof(alt_32));
@@ -294,14 +281,16 @@ int main()
   timer_init(timeout_isr);
 
   switches = IORD_16DIRECT(SWITCH_BASE,0); //switches
-  buttons = (~IORD_8DIRECT(BUTTON_BASE,0))&0b11; //buttons 
 
   int count = 0;
   float x_bias, y_bias, z_bias;
-
-  magnetometer_init();
-  bias(&x_bias, &y_bias, &z_bias, x_samples, y_samples, z_samples, quant_coefficients, acc_dev);
+  char str[32];
+  GY_271_init(MAGNETOMETER_BASE,50000000,100000);
+  GY_271_Reset(); 
+  GY_271_setMode(1,0,2,1,1,1); 
+  //bias(&x_bias, &y_bias, &z_bias, x_samples, y_samples, z_samples, quant_coefficients, acc_dev);
   while (1) {
+    buttons = (~IORD_8DIRECT(BUTTON_BASE,0))&0b11; //buttons 
     x.acc = (int)(fir_quantised(x_samples, x_read_acc, TAPS, quant_coefficients,count) - x_bias) /*& 0xFFFFFFF8*/; // remove LS 2 bits effect
     y.acc = (int)(fir_quantised(y_samples, y_read_acc, TAPS, quant_coefficients,count) - y_bias) /*& 0xFFFFFFF8*/;
     z.acc = (int)(fir_quantised(z_samples, z_read_acc, TAPS, quant_coefficients,count) - z_bias) /*& 0xFFFFFFF8*/;
@@ -309,9 +298,23 @@ int main()
     alt_up_accelerometer_spi_read_y_axis(acc_dev, &y_read_acc);
     alt_up_accelerometer_spi_read_z_axis(acc_dev, &z_read_acc);
 
-    magnetometer_read(&x_read_mag, &y_read_mag, &z_read_mag);
-    //printf("x:%d y:%d z:%d\n",x_read_mag,y_read_mag,z_read_mag);  //just for testing
+    if (count % 100 == 0) {
+      magnetometer_read(&x_read_mag, &y_read_mag, &z_read_mag,&ready);
+      //GY_271_Roll_Over_read(&x_read_mag,&y_read_mag,&z_read_mag,&ready); 
+      //float r = atan2(y.acc, sqrt(x.acc*x.acc + z.acc*z.acc));
+      //float p = atan2f(x.acc, sqrt(y.acc*y.acc + z.acc*z.acc));
+      //int cx = (int)(x_read_mag*cosf(p)+z_read_mag*sinf(p));
+      //int cy = (int)(x_read_mag*sinf(r)*cosf(p) + y_read_mag*cos(r) - z_read_mag*sinf(r)*cos(p));
+      float heading = 57.3 * atan2((double)x_read_mag,(double)y_read_mag);
+      printf("x:%d y:%d z:%d p:%d r:%d heading:%d\n",x_read_mag,y_read_mag,z_read_mag, (int)(57.3),(int)(57.3),(int) heading + 180);  //just for testing
+      //printf("A: %d x, %d y, %d z\n", (int)(x.acc), (int)(y.acc), (int)(z.acc)); 
+      hex_write(itoa((int)heading + 180,str,10));
+    }
 
+    if(buttons){
+      GY_271_Reset();
+      GY_271_setMode(0,1,2,1,1,1);
+    }
 
     convert_read(x.acc, &level, &led);
 
