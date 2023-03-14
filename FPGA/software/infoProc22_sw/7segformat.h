@@ -185,7 +185,6 @@ void hex_write_right(char text[CHARLIM]) {
 			enteredText[i] = '\0';
 		}
 	}
-	int shift = 6 - lengthofText;
 	switch(lengthofText) { // fallthroughs intentional
 		case 6: IOWR(HEX5_BASE, 0, getBin(enteredText[lengthofText - 6]));
 		case 5: IOWR(HEX4_BASE, 0, getBin(enteredText[lengthofText - 5]));

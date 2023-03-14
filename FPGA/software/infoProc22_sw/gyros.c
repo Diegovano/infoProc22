@@ -18,7 +18,8 @@
 #define EST 13
 #define TAPS 49
 #define MSEC_SUM_TIMEOUT 5
-#define MSEC_TX_TIMEOUT 5
+#define MSEC_UART_TX_TIMEOUT 5
+#define MSEC_ESP_TX_TIMEOUT 200
 
 #define INTEGRATE_ON_BOARD false
 #define DEBUG_UART false
@@ -132,7 +133,7 @@ alt_32 *z_samples, int *quant_coefficients, alt_up_accelerometer_spi_dev *acc_de
 // ====================================
 
 //read the magnetometer values
-void magnetometer_read(alt_16 * x,alt_16 * y,alt_16 * z,alt_u8 * ready){
+void magnetometer_read(alt_16 *x, alt_16 *y, alt_16 *z, alt_u8 *ready){
   *x = GY_271_Read_x();
   *y = GY_271_Read_y();
   *z = GY_271_Read_z();
@@ -166,8 +167,10 @@ void timeout_isr() {
   }
   #else
 
-  if (timer % MSEC_TX_TIMEOUT == 0) {
-    if (timer - last_step_at > 250 && acc_sq > 1500) {
+  if (timer % MSEC_ESP_TX_TIMEOUT == 0) alt_avalon_spi_command(SPI_BASE, 0, 1, &stepcount, 0, 0, 0);
+
+  if (timer % MSEC_UART_TX_TIMEOUT == 0) {
+    if (timer - last_step_at > 500 && acc_sq > 1000) {
       last_step_at = timer;
       char buffer[5]; 
       itoa(++stepcount, buffer, 10);
@@ -182,20 +185,20 @@ void timeout_isr() {
     alt_8 trailer = 0xFF; // trailer, indicate end of stream
 
     #if DEBUG_UART
-    //printf("start: %d\n", header);
+    printf("start: %d\n", header);
     #else
     putchar(header);
     #endif
     for (unsigned i = 0; i < sizeof(payload) / sizeof(*payload); i++)
     {
       #if DEBUG_UART
-      //printf("%d\n", payload[i]);
+      printf("%d\n", payload[i]);
       #else
       putchar(payload[i]);
       #endif
     }
      #if DEBUG_UART
-    //printf("end: %d\n", trailer);
+    printf("end: %d\n", trailer);
     #else
     putchar(trailer);
     #endif
@@ -265,8 +268,7 @@ alt_u16 accel_abs_sq(dim x, dim y, dim z, alt_u32 grav_bias) {
 
 int main()
 {
-  // hex_write_left("STILL!");
-  hex_write_left("COREYOMALLEY");
+  hex_write_left("STILL!");
   alt_32 x_read_acc, y_read_acc, z_read_acc;
   alt_16 x_read_mag, y_read_mag, z_read_mag;
   alt_u8 ready;
@@ -321,6 +323,8 @@ int main()
     alt_up_accelerometer_spi_read_y_axis(acc_dev, &y_read_acc);
     alt_up_accelerometer_spi_read_z_axis(acc_dev, &z_read_acc);
 
+    acc_sq = accel_abs_sq(x, y, z, grav_bias);
+
     if (count % 100 == 0) {
       magnetometer_read(&x_read_mag, &y_read_mag, &z_read_mag,&ready);
       //GY_271_Roll_Over_read(&x_read_mag,&y_read_mag,&z_read_mag,&ready); 
@@ -336,7 +340,7 @@ int main()
       float heading = 57.3 * atan2((double)x_read_mag,(double)y_read_mag);
       printf("x:%d y:%d z:%d p:%d r:%d heading:%d\n",x_read_mag,y_read_mag,z_read_mag, (int)(57.3 * roll),(int)(57.3 * pitch),(int) heading + 180);  //just for testing
       //printf("A: %d x, %d y, %d z\n", (int)(x.acc), (int)(y.acc), (int)(z.acc)); 
-      hex_write(itoa((int)heading_roll + 180,str,10));
+      // hex_write_left(itoa((int)heading_roll + 180,str,10));
     }
 
     if(buttons){
