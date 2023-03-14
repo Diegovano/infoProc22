@@ -301,14 +301,19 @@ int main()
     if (count % 100 == 0) {
       magnetometer_read(&x_read_mag, &y_read_mag, &z_read_mag,&ready);
       //GY_271_Roll_Over_read(&x_read_mag,&y_read_mag,&z_read_mag,&ready); 
-      //float r = atan2(y.acc, sqrt(x.acc*x.acc + z.acc*z.acc));
-      //float p = atan2f(x.acc, sqrt(y.acc*y.acc + z.acc*z.acc));
-      //int cx = (int)(x_read_mag*cosf(p)+z_read_mag*sinf(p));
-      //int cy = (int)(x_read_mag*sinf(r)*cosf(p) + y_read_mag*cos(r) - z_read_mag*sinf(r)*cos(p));
+      float roll = atan2(z.acc, sqrt(x.acc*x.acc + y.acc*y.acc));
+      float pitch = atan2(x.acc, sqrt(z.acc*z.acc + y.acc*y.acc));
+      float cosRoll = cos(roll);
+      float sinRoll = sin(roll);
+      float cosPitch = cos(pitch);
+      float sinPitch = sin(pitch);
+      float xh = x_read_mag * cosPitch + z_read_mag * sinPitch;
+      float yh = x_read_mag * sinRoll * sinPitch + y_read_mag * cosRoll - z_read_mag * sinRoll * cosPitch;
+      float heading_roll = atan2(yh, xh) * 57.3;
       float heading = 57.3 * atan2((double)x_read_mag,(double)y_read_mag);
-      printf("x:%d y:%d z:%d p:%d r:%d heading:%d\n",x_read_mag,y_read_mag,z_read_mag, (int)(57.3),(int)(57.3),(int) heading + 180);  //just for testing
+      printf("x:%d y:%d z:%d p:%d r:%d heading:%d\n",x_read_mag,y_read_mag,z_read_mag, (int)(57.3 * roll),(int)(57.3 * pitch),(int) heading + 180);  //just for testing
       //printf("A: %d x, %d y, %d z\n", (int)(x.acc), (int)(y.acc), (int)(z.acc)); 
-      hex_write(itoa((int)heading + 180,str,10));
+      hex_write(itoa((int)heading_roll + 180,str,10));
     }
 
     if(buttons){
