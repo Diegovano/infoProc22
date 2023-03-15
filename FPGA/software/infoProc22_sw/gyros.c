@@ -170,10 +170,10 @@ void timeout_isr() {
   #else
 
   if (timer % MSEC_ESP_TX_TIMEOUT == 0) {
-    int send[3];
+    alt_u8 send[2];
     send[0] = stepcount;
     send[1] = heading_roll;
-    //alt_avalon_spi_command(SPI_BASE, 0, 4, send, 0, 0, 0);
+    alt_avalon_spi_command(SPI_BASE, 0, 2, send, 0, 0, 0);
     //alt_avalon_spi_command(SPI_BASE, 0, 1, &stepcount, 0, 0, 0);
   }
 
@@ -346,7 +346,7 @@ int main()
       float yh = x_read_mag * sinRoll * sinPitch + y_read_mag * cosRoll - z_read_mag * sinRoll * cosPitch;
       heading_roll = (int) (atan2(yh, xh) * 57.3);
       float heading = 57.3 * atan2((double)x_read_mag,(double)y_read_mag);
-      printf("x:%d y:%d z:%d p:%d r:%d heading:%d\n",x_read_mag,y_read_mag,z_read_mag, (int)(57.3 * roll),(int)(57.3 * pitch),(int) heading + 180);  //just for testing
+      //printf("x:%d y:%d z:%d p:%d r:%d heading:%d\n",x_read_mag,y_read_mag,z_read_mag, (int)(57.3 * roll),(int)(57.3 * pitch),(int) heading + 180);  //just for testing
       //printf("A: %d x, %d y, %d z\n", (int)(x.acc), (int)(y.acc), (int)(z.acc)); 
       // hex_write_left(itoa((int)heading_roll + 180,str,10));
     }

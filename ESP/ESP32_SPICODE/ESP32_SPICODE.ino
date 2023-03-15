@@ -12,8 +12,8 @@ uint8_t spi_slave_tx_buf[BUFFER_SIZE];
 uint8_t spi_slave_rx_buf[BUFFER_SIZE];
 
 // Replace with your network credentials
-const char* ssid = "ENTER_CURRENT_SSID";
-const char* password = "ENTER_CURRENT_PSWD";
+const char* ssid = "Upstairs";
+const char* password = "123456789";
 
 //Server we are sending the data to and connection timeout in ms
 const char *ip = "13.41.53.180";
@@ -84,10 +84,10 @@ void sendRequest(const char* Message) {
   if(!client.connected()){
 
     if(client.connect(ip,port,timeout)){
-      Serial.println("[TCP_IP]   | succesful! server connected");
+      Serial.println("[TCP_IP]   | successful! server connected");
     } 
     else {
-      Serial.println("[TCP_IP]   | could not connect to server, timout reached");
+      Serial.println("[TCP_IP]   | could not connect to server, timeout reached");
     }
 
   }
@@ -119,7 +119,7 @@ void loop() {
     // if transaction has completed from master,
     // available() returns size of results of transaction,
     // and `spi_slave_rx_buf` is automatically updated
-    while (slave.available()) {
+    while (slave.available() > 1) {
         Serial.println("=====================================[TRANMISSION BLOCK]===================================");
         Serial.println("--------------[SPI COMM]-----------");
 
