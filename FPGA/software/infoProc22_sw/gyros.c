@@ -9,9 +9,10 @@
 #include "stdio.h" // for printf()
 #include "stdbool.h" // for true & false
 #include "altera_avalon_spi.h" // for alt_avalon_spi_command()
-#include "7segformat.h"
-#include "GY271.h"
+#include "7segformat.h" //for 7 seg
+#include "GY271.h" //for magnetometer 
 #include "math.h"
+#include "system.h" //for floating point
 
 #define OFFSET -32
 #define PWM_PERIOD 16
@@ -30,6 +31,7 @@ alt_u32 timer = 0;
 int level;
 int pulse; 
 int Lightshift;
+int heading_roll;
 
 int stepcount = 0;
 alt_u32 last_step_at = 0;
@@ -167,7 +169,13 @@ void timeout_isr() {
   }
   #else
 
-  if (timer % MSEC_ESP_TX_TIMEOUT == 0) alt_avalon_spi_command(SPI_BASE, 0, 1, &stepcount, 0, 0, 0);
+  if (timer % MSEC_ESP_TX_TIMEOUT == 0) {
+    int send[3];
+    send[0] = stepcount;
+    send[1] = heading_roll;
+    //alt_avalon_spi_command(SPI_BASE, 0, 4, send, 0, 0, 0);
+    //alt_avalon_spi_command(SPI_BASE, 0, 1, &stepcount, 0, 0, 0);
+  }
 
   if (timer % MSEC_UART_TX_TIMEOUT == 0) {
     if (timer - last_step_at > 500 && acc_sq > 1000) {
@@ -336,7 +344,7 @@ int main()
       float sinPitch = sin(pitch);
       float xh = x_read_mag * cosPitch + z_read_mag * sinPitch;
       float yh = x_read_mag * sinRoll * sinPitch + y_read_mag * cosRoll - z_read_mag * sinRoll * cosPitch;
-      float heading_roll = atan2(yh, xh) * 57.3;
+      heading_roll = (int) (atan2(yh, xh) * 57.3);
       float heading = 57.3 * atan2((double)x_read_mag,(double)y_read_mag);
       printf("x:%d y:%d z:%d p:%d r:%d heading:%d\n",x_read_mag,y_read_mag,z_read_mag, (int)(57.3 * roll),(int)(57.3 * pitch),(int) heading + 180);  //just for testing
       //printf("A: %d x, %d y, %d z\n", (int)(x.acc), (int)(y.acc), (int)(z.acc)); 
