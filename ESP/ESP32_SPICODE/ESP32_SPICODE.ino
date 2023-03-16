@@ -12,8 +12,8 @@ uint8_t spi_slave_tx_buf[BUFFER_SIZE];
 uint8_t spi_slave_rx_buf[BUFFER_SIZE];
 
 // Replace with your network credentials
-const char* ssid = "Upstairs";
-const char* password = "123456789";
+const char* ssid = "SlicesFibre2.4GHz";
+const char* password = "pg10gvi1bs";
 
 //Server we are sending the data to and connection timeout in ms
 const char *ip = "13.41.53.180";
@@ -25,6 +25,9 @@ const char* ntpServer = "pool.ntp.org";
 const long  gmtOffset_sec = 0;
 const int   daylightOffset_sec = 0;
 char currentTime[26] = {'\0'};
+
+//Total Variables
+long int total_steps;
 
 //Initalise the Wifi Connection (can be re-ran for re-connection)
 void initWiFi() {
@@ -48,32 +51,32 @@ void initWiFi() {
 void printLocalTime(){
   struct tm timeinfo;
   if(!getLocalTime(&timeinfo)){
-    Serial.println("Failed to obtain time");
-    return;
+    Serial.println("[NTP] | Failed to obtain time");
+    printLocalTime();
   }
   strftime(currentTime, 26, "%Y-%m-%d %H:%M:%S", &timeinfo);
-  puts(currentTime);
   Serial.print("[NTP] | ");
   Serial.println(currentTime);
 }
 
 void setup() {
-    Serial.begin(115200);
-    Serial.println("====================[SETUP COMM]=================");
-    //Connect to Wifi
-    initWiFi();
+  Serial.begin(115200);
+  Serial.println("====================[SETUP COMM]=================");
+  //Connect to Wifi
+  initWiFi();
 
-    // Init and get the time
-    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-    printLocalTime();
+  // Init and get the time
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+  printLocalTime();
 
-    //Start SPI Connection with HSPI Pins
-    //HSPI = CS: 15, CLK: 14, MOSI: 13, MISO: 12
-    slave.setDataMode(SPI_MODE0);
-    slave.begin(HSPI);
+  //Start SPI Connection with HSPI Pins
+  //HSPI = CS: 15, CLK: 14, MOSI: 13, MISO: 12
+  slave.setDataMode(SPI_MODE0);
+  slave.begin(HSPI);
 
-    WifiServer.begin();
+  total_steps = 0;
 
+  WifiServer.begin();
 }
 
 
@@ -96,7 +99,7 @@ void sendRequest(const char* Message) {
     Serial.println("[TCP_IP]  | Open Connection Maintained");
 
     //Send the Data if connected
-    client.print(Message); 
+    client.println(Message); 
     Serial.print("[TCP_Tx] | ");
     Serial.println(Message);
 
@@ -107,6 +110,7 @@ void sendRequest(const char* Message) {
       char val = client.read();
       Serial.print(val);
     }
+    Serial.println();
   }
 
 }
@@ -120,7 +124,7 @@ void loop() {
     // available() returns size of results of transaction,
     // and `spi_slave_rx_buf` is automatically updated
     while (slave.available() > 1) {
-        Serial.println("=====================================[TRANMISSION BLOCK]===================================");
+        Serial.println("=====================================[TRANSMISSION BLOCK]===================================");
         Serial.println("--------------[SPI COMM]-----------");
 
         //print the full Spi Rx Buffer
@@ -131,10 +135,15 @@ void loop() {
         }
         printf("\n");
 
-        //string format for json data with database
-        char PostData[128];
+        //update the current time
         printLocalTime();
-        sprintf(PostData, "{\"timestamp\":\"%s\", \"device_id\":\"1\", \"change_step\":\"%d\", \"heading\":\"%d\"}", currentTime, spi_slave_rx_buf[0], spi_slave_rx_buf[1]);
+
+        //buffer for the Json Data
+        char PostData[128];
+
+        total_steps += spi_slave_rx_buf[0];
+        //Format the Json Data
+        sprintf(PostData, "{\"timestamp\":\"%s\", \"device_id\":\"1\", \"change_step\":%d, \"heading\":%d, \"total_steps\":%d}", currentTime, spi_slave_rx_buf[0], spi_slave_rx_buf[1], total_steps);
         Serial.print("[SPI->MSG] | ");
         Serial.println(PostData);
 
@@ -144,7 +153,6 @@ void loop() {
           initWiFi();
         }
           
-
         //send the formatted string
         sendRequest(PostData);
 
