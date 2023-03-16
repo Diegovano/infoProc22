@@ -12,8 +12,8 @@ uint8_t spi_slave_tx_buf[BUFFER_SIZE];
 uint8_t spi_slave_rx_buf[BUFFER_SIZE];
 
 // Replace with your network credentials
-const char* ssid = "SlicesFibre2.4GHz";
-const char* password = "pg10gvi1bs";
+const char* ssid = "Upstairs";
+const char* password = "123456789";
 
 //Server we are sending the data to and connection timeout in ms
 const char *ip = "13.41.53.180";
@@ -141,9 +141,8 @@ void loop() {
         //buffer for the Json Data
         char PostData[128];
 
-        total_steps += spi_slave_rx_buf[0];
         //Format the Json Data
-        sprintf(PostData, "{\"timestamp\":\"%s\", \"device_id\":\"1\", \"change_step\":%d, \"heading\":%d, \"total_steps\":%d}", currentTime, spi_slave_rx_buf[0], spi_slave_rx_buf[1], total_steps);
+        sprintf(PostData, "{\"timestamp\":\"%s\", \"device_id\":\"1\", \"total_steps\":%d, \"heading\":%d}", currentTime, spi_slave_rx_buf[0], spi_slave_rx_buf[1]);
         Serial.print("[SPI->MSG] | ");
         Serial.println(PostData);
 
