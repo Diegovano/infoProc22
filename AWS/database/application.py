@@ -3,7 +3,7 @@ from flask import Flask, make_response, jsonify, request
 
 app = Flask("application")
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-table_name = 'di_data5'
+table_name = 'di_data10'
 table = dynamodb.Table(table_name)
 
 @app.route('/get_info', methods=['GET'])
@@ -17,10 +17,12 @@ def get_info():
         ExpressionAttributeValues={
             ':id_val': args["device_id"],
         },
-        ProjectionExpression='Heading, #cs',
+        ProjectionExpression='Heading, #cs, #ds, #sm',
         ExpressionAttributeNames={
             '#cs': 'total_steps',
-        }
+            '#sm' : 'heading',
+            '#ds': 'timestamp',
+        },
     )
     items = response['Items']
     http_resp = make_response(jsonify({'Items' : items}), 200)

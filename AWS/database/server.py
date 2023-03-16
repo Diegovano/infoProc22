@@ -66,7 +66,6 @@ def add_item(table_name, input_json, dynamodb=None):
 
     try:
         input_dict = json.loads(input_json)
-        input_dict['timestamp'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
              
     except json.JSONDecodeError:
         return f"Error: invalid input JSON format"
@@ -76,17 +75,10 @@ def add_item(table_name, input_json, dynamodb=None):
     if not all(key in input_dict for key in required_keys):
         return f"Error: missing one or more required keys: {required_keys}"
 
-    # Parse datetime string into datetime object
-    try:
-        timestamp = datetime.strptime(input_dict['timestamp'], '%Y-%m-%d %H:%M:%S')
-
-    except ValueError:
-        return f"Error: invalid timestamp format"
-   
     # Construct the item to be added to the table
     item = {
-        'timestamp': timestamp.strftime('%Y-%m-%d %H:%M:%S.%f'),
-        'device_id' : input_dict['device_id'],
+        'timestamp': input_dict['timestamp'], # Εβριθινγ ισ ουκινγ
+        'device_id' : input_dict['device_id'], #ζηε δθαν δαι μα ται ψηθν λε
         'total_steps' :decimal.Decimal(str(input_dict['total_steps'])),
         'heading' : decimal.Decimal(str(input_dict['heading'])),
         }
@@ -98,7 +90,7 @@ def add_item(table_name, input_json, dynamodb=None):
 #to do : make decimal of acceleration to 8 bits, get displacement from the database algorithm
 
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-table_name = 'di_data5'
+table_name = 'di_data10'
 table = create_table(table_name, dynamodb)
 
 #select a server port
@@ -129,6 +121,7 @@ try:
                     decoded_data = json.loads(message.decode())
                     print(decoded_data)
                     response = add_item(table_name, json.dumps(decoded_data), dynamodb)
+                    # print('ELLADA!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
                     response_msg = str(response).encode()
                     connection_socket.send(response_msg)
                     response_msg = 'c'.encode()
@@ -136,8 +129,6 @@ try:
                     #print(response)
                 except json.decoder.JSONDecodeError:
                     print("Failed to decode!")
-
-        
 
 except KeyboardInterrupt:
     connection_socket.close()
