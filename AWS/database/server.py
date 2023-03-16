@@ -21,18 +21,14 @@ def create_table(table_name, dynamodb = None):
         table = dynamodb.create_table(
             TableName=table_name,
             KeySchema=[
-            {
+                {
                      'AttributeName': 'device_id',
-                     'KeyType': 'HASH'  #Sort key
+                     'KeyType': 'HASH'  #Partition key
                 },
                 {
                     'AttributeName': 'timestamp',
-                    'KeyType': 'HASH'  #Partition Key
+                    'KeyType': 'RANGE'  #Sort Key
                 },
-                {
-                    'AttributeName': 'device_id',
-                    'KeyType': 'RANGE'  #Sort key
-                }
             ],
             AttributeDefinitions=[
                 {
