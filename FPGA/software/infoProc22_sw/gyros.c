@@ -191,10 +191,10 @@ void timeout_isr() {
   #else
 
   if (timer % MSEC_ESP_TX_TIMEOUT == 0) {
-    int send[3];
+    alt_u8 send[2];
     send[0] = stepcount;
     send[1] = heading_roll;
-    //alt_avalon_spi_command(SPI_BASE, 0, 4, send, 0, 0, 0);
+    alt_avalon_spi_command(SPI_BASE, 0, 2, send, 0, 0, 0);
     //alt_avalon_spi_command(SPI_BASE, 0, 1, &stepcount, 0, 0, 0);
   }
 

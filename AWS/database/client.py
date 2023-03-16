@@ -14,10 +14,9 @@ client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client_socket.connect((server_name, server_port))
 # create a sample JSON object
 data = {
-    "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f'),
-    "accel_x": 90.1,
-    "accel_y": 87.21,
-    "accel_z": 0.0001
+    "device_id": "1",
+    "change_step": 90.1,
+    "heading": 87.21,
 }
 # encode JSON object to bytes
 json_data = json.dumps(data).encode()

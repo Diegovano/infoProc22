@@ -1,5 +1,7 @@
 import random
 import time
+import datetime 
+
 
 def increment(left,right,seed):
     random.seed(seed)
@@ -9,6 +11,10 @@ def increment(left,right,seed):
     vertical_increment_max = vertical_distance/500
     horizontal_increment = random.uniform(-horizontal_increment_max, horizontal_increment_max)
     vertical_increment = random.uniform(-vertical_increment_max, vertical_increment_max)
+    
+    timestamp = datetime.datetime.now()
+    timestamp.strftime('%Y-%m-%dT%H:%M:%S') + ('-%02d' % (now.microsecond / 10000))
+    device_id = "device_id"
 
     return horizontal_increment,vertical_increment
 

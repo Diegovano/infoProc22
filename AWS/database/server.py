@@ -5,6 +5,7 @@ from pprint import pprint
 from datetime import datetime
 import decimal 
 
+
 def create_table(table_name, dynamodb = None):
     if not dynamodb:
         dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
@@ -21,23 +22,23 @@ def create_table(table_name, dynamodb = None):
             TableName=table_name,
             KeySchema=[
                 {
-                    'AttributeName': 'timestamp',
-                    'KeyType': 'HASH'  #Partition Key
+                     'AttributeName': 'device_id',
+                     'KeyType': 'HASH'  #Partition key
                 },
                 {
-                    'AttributeName': 'device_id',
-                    'KeyType': 'RANGE'  #Sort key
-                }
+                    'AttributeName': 'timestamp',
+                    'KeyType': 'RANGE'  #Sort Key
+                },
             ],
             AttributeDefinitions=[
                 {
                     'AttributeName': 'timestamp',
                     'AttributeType': 'S'
-                },
+                 },
                  {
-                    'AttributeName': 'device_id',
-                    'AttributeType': 'S'
-                }
+                     'AttributeName': 'device_id',
+                     'AttributeType': 'S'
+                 }
             ],
             ProvisionedThroughput={
                 'ReadCapacityUnits': 5,
@@ -55,9 +56,8 @@ def add_item(table_name, input_json, dynamodb=None):
     {
         "timestamp": "YYYY-MM-DD HH:MM:SS.ssssss",
         "device_id" : <string>
-        "accel_x": <float>,
-        "accel_y": <float>,
-        "accel_z": <float>
+         "change_step": <int>,
+         "direction": <int>,
     }
     """
     if not dynamodb:
@@ -66,28 +66,21 @@ def add_item(table_name, input_json, dynamodb=None):
 
     try:
         input_dict = json.loads(input_json)
+             
     except json.JSONDecodeError:
         return f"Error: invalid input JSON format"
      
     # Check that required keys are present in the input dictionary
-    required_keys = ['timestamp', 'device_id','accel_x', 'accel_y', 'accel_z']
+    required_keys = ['timestamp', 'device_id','total_steps', 'heading']
     if not all(key in input_dict for key in required_keys):
         return f"Error: missing one or more required keys: {required_keys}"
 
-    # Parse datetime string into datetime object
-    try:
-        timestamp = datetime.strptime(input_dict['timestamp'], '%Y-%m-%d %H:%M:%S.%f')
-
-    except ValueError:
-        return f"Error: invalid timestamp format"
-   
     # Construct the item to be added to the table
     item = {
-        'timestamp': timestamp.strftime('%Y-%m-%d %H:%M:%S.%f'),
-        'device_id' : str(input_dict['device_id']),
-        'accel_x' : decimal.Decimal(str(input_dict['accel_x'])),
-        'accel_y' : decimal.Decimal(str(input_dict['accel_y'])),
-        'accel_z' : decimal.Decimal(str(input_dict['accel_z'])),
+        'timestamp': input_dict['timestamp'], # Εβριθινγ ισ ουκινγ
+        'device_id' : input_dict['device_id'], #ζηε δθαν δαι μα ται ψηθν λε
+        'total_steps' :decimal.Decimal(str(input_dict['total_steps'])),
+        'heading' : decimal.Decimal(str(input_dict['heading'])),
         }
 
     # Add the item to the table
@@ -97,13 +90,14 @@ def add_item(table_name, input_json, dynamodb=None):
 #to do : make decimal of acceleration to 8 bits, get displacement from the database algorithm
 
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-table_name = 'accel_data'
+table_name = 'di_data10'
 table = create_table(table_name, dynamodb)
 
 #select a server port
 server_port = 12000
 #create a welcoming socket
 welcome_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+welcome_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 #bind the server to the localhost at port server_port
 welcome_socket.bind(('0.0.0.0',server_port))
 welcome_socket.listen()
@@ -114,23 +108,52 @@ connection_socket, caddr = welcome_socket.accept()
 #Now the main server loop
 try: 
     while True:
-        #notice recv and send instead of recvto and sendto
-        cmsg = connection_socket.recv(1024)  
+        cmsg = connection_socket.recv(1024)
+        print(cmsg)
         if not cmsg:
             break
-        # decode json data received
-        decoded_data = json.loads(cmsg.decode())
-        
-        # print the received data
-        print("Received:", decoded_data)
-
-        # add the incoming data to the DynamoDB table
-        response = add_item(table_name, json.dumps(decoded_data), dynamodb)
+        messages = cmsg.split(b"\n")
+        for message in messages:
+            message = message.strip()
+            if message:
+                print("Decoding",message)
+                try:
+                    decoded_data = json.loads(message.decode())
+                    print(decoded_data)
+                    response = add_item(table_name, json.dumps(decoded_data), dynamodb)
+                    # print('ELLADA!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+                    response_msg = str(response).encode()
+                    connection_socket.send(response_msg)
+                    response_msg = 'c'.encode()
+                    connection_socket.send(response_msg)
+                    #print(response)
+                except json.decoder.JSONDecodeError:
+                    print("Failed to decode!")
 
 except KeyboardInterrupt:
     connection_socket.close()
     welcome_socket.close()
 
-   
 
-   
+#  sockets = [welcome_socket]  # list of sockets to monitor
+# clients = {}  # dictionary of client sockets and their addresses
+
+# while True:
+#     readable, _, _ = select.select(sockets, [], [])  # wait for a socket to be ready to read
+#     for sock in readable:
+#         if sock is welcome_socket:  # new client connection
+#             connection_socket, caddr = sock.accept()
+#             sockets.append(connection_socket)
+#             clients[connection_socket] = caddr
+#             print('New client connected:', caddr)
+#         else:  # existing client data received
+#             cmsg = sock.recv(1024)
+#             if not cmsg:  # client disconnected
+#                 sock.close()
+#                 sockets.remove(sock)
+#                 del clients[sock]
+#                 print('Client disconnected:', clients[sock])
+#             else:  # process client data
+#                 decoded_data = json.loads(cmsg.decode())
+#                 print('Received from', clients[sock], ':', decoded_data)
+#                 response = add_item(table_name, json.dumps(decoded_data), dynamodb)  
