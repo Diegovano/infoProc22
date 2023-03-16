@@ -13,6 +13,7 @@
 #include "GY271.h" //for magnetometer 
 #include "math.h"
 #include "system.h" //for floating point
+#include "dodgey_trig.h" //decent trig 
 
 #define OFFSET -32
 #define PWM_PERIOD 16
@@ -139,6 +140,26 @@ void magnetometer_read(alt_16 *x, alt_16 *y, alt_16 *z, alt_u8 *ready){
   *x = GY_271_Read_x();
   *y = GY_271_Read_y();
   *z = GY_271_Read_z();
+}
+
+void compass_direction(){
+  alt_16 x_read_mag, y_read_mag, z_read_mag;
+  alt_u8 ready;
+  magnetometer_read(&x_read_mag, &y_read_mag, &z_read_mag,&ready);
+  //GY_271_Roll_Over_read(&x_read_mag,&y_read_mag,&z_read_mag,&ready); 
+  float roll = atan2(z.acc, sqrt(x.acc*x.acc + y.acc*y.acc));
+  float pitch = atan2(x.acc, sqrt(z.acc*z.acc + y.acc*y.acc));
+  float cosRoll = cos(roll);
+  float sinRoll = sin(roll);
+  float cosPitch = cos(pitch);
+  float sinPitch = sin(pitch);
+  float xh = x_read_mag * cosPitch + z_read_mag * sinPitch;
+  float yh = x_read_mag * sinRoll * sinPitch + y_read_mag * cosRoll - z_read_mag * sinRoll * cosPitch;
+  heading_roll = (int) (atan2(yh, xh) * 57.3);
+  //float heading = 57.3 * atan2((double)x_read_mag,(double)y_read_mag);
+  //printf("x:%d y:%d z:%d p:%d r:%d heading:%d\n",x_read_mag,y_read_mag,z_read_mag, (int)(57.3 * roll),(int)(57.3 * pitch),(int) heading + 180);  //just for testing
+  //printf("A: %d x, %d y, %d z\n", (int)(x.acc), (int)(y.acc), (int)(z.acc)); 
+  // hex_write_left(itoa((int)heading_roll + 180,str,10));
 }
 
 // ====================================
@@ -278,8 +299,6 @@ int main()
 {
   hex_write_left("STILL!");
   alt_32 x_read_acc, y_read_acc, z_read_acc;
-  alt_16 x_read_mag, y_read_mag, z_read_mag;
-  alt_u8 ready;
   alt_u16 switches;
   alt_u8 buttons;
   alt_32 *x_samples = calloc(TAPS, sizeof(alt_32));
@@ -334,21 +353,7 @@ int main()
     acc_sq = accel_abs_sq(x, y, z, grav_bias);
 
     if (count % 100 == 0) {
-      magnetometer_read(&x_read_mag, &y_read_mag, &z_read_mag,&ready);
-      //GY_271_Roll_Over_read(&x_read_mag,&y_read_mag,&z_read_mag,&ready); 
-      float roll = atan2(z.acc, sqrt(x.acc*x.acc + y.acc*y.acc));
-      float pitch = atan2(x.acc, sqrt(z.acc*z.acc + y.acc*y.acc));
-      float cosRoll = cos(roll);
-      float sinRoll = sin(roll);
-      float cosPitch = cos(pitch);
-      float sinPitch = sin(pitch);
-      float xh = x_read_mag * cosPitch + z_read_mag * sinPitch;
-      float yh = x_read_mag * sinRoll * sinPitch + y_read_mag * cosRoll - z_read_mag * sinRoll * cosPitch;
-      heading_roll = (int) (atan2(yh, xh) * 57.3);
-      float heading = 57.3 * atan2((double)x_read_mag,(double)y_read_mag);
-      printf("x:%d y:%d z:%d p:%d r:%d heading:%d\n",x_read_mag,y_read_mag,z_read_mag, (int)(57.3 * roll),(int)(57.3 * pitch),(int) heading + 180);  //just for testing
-      //printf("A: %d x, %d y, %d z\n", (int)(x.acc), (int)(y.acc), (int)(z.acc)); 
-      // hex_write_left(itoa((int)heading_roll + 180,str,10));
+      compass_direction();
     }
 
     if(buttons){
