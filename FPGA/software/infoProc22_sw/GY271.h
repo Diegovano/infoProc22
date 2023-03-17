@@ -22,7 +22,7 @@ void GY_271_Write(alt_u8 reg,alt_u8 data){
 
 alt_u8 GY_271_Read(alt_u8 reg){
     I2C_start(base_gy271,I2C_REG,0);
-    I2C_write(base_gy271,reg,1);
+    I2C_write(base_gy271,reg,0);
     I2C_start(base_gy271,I2C_REG,1);
     return I2C_read(base_gy271,1);
 }

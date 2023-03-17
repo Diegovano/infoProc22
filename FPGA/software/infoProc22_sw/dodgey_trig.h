@@ -22,9 +22,11 @@ float sketch_atan(float x){
         x *= -1;
         neg = -1;
     }
-    x *= 4096;
     unsigned int*ptr=(unsigned int*)&x;
-    float idx = (*ptr>>23)&0xff - 127;
-    idx *= (8/15);
-    return kinda_atan[(int) idx];
+    float idx = (*ptr>>23)&0xff;
+    idx -= 127;
+    //idx = idx - 1.0 + x/(powf(2,idx));
+    idx *= (128/20);
+    idx += 65;
+    return neg*kinda_atan[(int)idx];
 }

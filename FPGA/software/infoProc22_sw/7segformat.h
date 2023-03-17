@@ -24,7 +24,7 @@ void getActualText(char text[CHARLIM]){
 		case 'M':
 			//We build the letter "M" from two "n's," so we need to change the index twice in the actual text
 			enteredText[idx] = 'N';
-			enteredText[idx + 1] = 'N';
+			enteredText[idx + 1] = '~';
 			idx += 2;
 			lastoneadot = 0;
 			break;
@@ -41,7 +41,7 @@ void getActualText(char text[CHARLIM]){
 		case 'W':
 			//We build the letter "W" from two "v's," so we need to change the index twice in the actual text
 			enteredText[idx] = 'V';
-			enteredText[idx + 1] = 'V';
+			enteredText[idx + 1] = '#';
 			idx += 2;
 			lastoneadot = 0;
 			break;
@@ -150,6 +150,10 @@ int getBin(char letter){
 		return 0b11110111;
 	case '!':
 		return 0b01111101;
+	case '#':
+		return 0b11110011;
+	case '~':
+		return 0b10111011;
 	default:
 		return 0b11111111;
 	}
