@@ -5,11 +5,11 @@
  version="1.0"
  fabric="QSYS">
  <!-- Format version 20.1 711 (Future versions may contain additional information.) -->
- <!-- 2023.03.16.20:33:56 -->
+ <!-- 2023.03.17.19:02:22 -->
  <!-- A collection of modules and connections -->
  <parameter name="AUTO_GENERATION_ID">
   <type>java.lang.Integer</type>
-  <value>1678998835</value>
+  <value>1679079742</value>
   <derived>false</derived>
   <enabled>true</enabled>
   <visible>false</visible>
@@ -36,7 +36,7 @@
  </parameter>
  <parameter name="AUTO_DEVICE">
   <type>java.lang.String</type>
-  <value>10M50DAF484C7G</value>
+  <value>10M50DAF484C6GES</value>
   <derived>false</derived>
   <enabled>true</enabled>
   <visible>false</visible>
@@ -45,7 +45,7 @@
  </parameter>
  <parameter name="AUTO_DEVICE_SPEEDGRADE">
   <type>java.lang.String</type>
-  <value>7</value>
+  <value>6</value>
   <derived>false</derived>
   <enabled>true</enabled>
   <visible>false</visible>
@@ -3730,7 +3730,7 @@ the requested settings for a module instance. -->
   </parameter>
   <parameter name="AUTO_DEVICE">
    <type>java.lang.String</type>
-   <value>10M50DAF484C7G</value>
+   <value>10M50DAF484C6GES</value>
    <derived>false</derived>
    <enabled>true</enabled>
    <visible>false</visible>
@@ -3739,7 +3739,7 @@ the requested settings for a module instance. -->
   </parameter>
   <parameter name="AUTO_DEVICE_SPEEDGRADE">
    <type>java.lang.String</type>
-   <value>7</value>
+   <value>6</value>
    <derived>false</derived>
    <enabled>true</enabled>
    <visible>false</visible>
@@ -13016,7 +13016,7 @@ the requested settings for a module instance. -->
   </parameter>
   <parameter name="AUTO_DEVICE">
    <type>java.lang.String</type>
-   <value>10M50DAF484C7G</value>
+   <value>10M50DAF484C6GES</value>
    <derived>false</derived>
    <enabled>true</enabled>
    <visible>false</visible>
@@ -13025,7 +13025,7 @@ the requested settings for a module instance. -->
   </parameter>
   <parameter name="AUTO_DEVICE_SPEEDGRADE">
    <type>java.lang.String</type>
-   <value>7</value>
+   <value>6</value>
    <derived>false</derived>
    <enabled>true</enabled>
    <visible>false</visible>
@@ -13432,7 +13432,7 @@ the requested settings for a module instance. -->
   </assignment>
   <assignment>
    <name>embeddedsw.CMacro.INIT_MEM_CONTENT</name>
-   <value>0</value>
+   <value>1</value>
   </assignment>
   <assignment>
    <name>embeddedsw.CMacro.INSTANCE_ID</name>
@@ -13440,7 +13440,7 @@ the requested settings for a module instance. -->
   </assignment>
   <assignment>
    <name>embeddedsw.CMacro.NON_DEFAULT_INIT_FILE_ENABLED</name>
-   <value>0</value>
+   <value>1</value>
   </assignment>
   <assignment>
    <name>embeddedsw.CMacro.RAM_BLOCK_TYPE</name>
@@ -13560,7 +13560,7 @@ the requested settings for a module instance. -->
   </parameter>
   <parameter name="initMemContent">
    <type>boolean</type>
-   <value>false</value>
+   <value>true</value>
    <derived>false</derived>
    <enabled>true</enabled>
    <visible>true</visible>
@@ -13568,9 +13568,9 @@ the requested settings for a module instance. -->
   </parameter>
   <parameter name="initializationFileName">
    <type>java.lang.String</type>
-   <value>onchip_mem.hex</value>
+   <value>C:/Users/diego/OneDrive/Documents/Work/~Year_2/Information_Processing/infoProc22/FPGA/software/infoProc22_sw/mem_init/nios_accelerometer_onchip_memory.hex</value>
    <derived>false</derived>
-   <enabled>false</enabled>
+   <enabled>true</enabled>
    <visible>true</visible>
    <valid>true</valid>
   </parameter>
@@ -13578,7 +13578,7 @@ the requested settings for a module instance. -->
    <type>boolean</type>
    <value>false</value>
    <derived>false</derived>
-   <enabled>false</enabled>
+   <enabled>true</enabled>
    <visible>true</visible>
    <valid>true</valid>
   </parameter>
@@ -13656,9 +13656,9 @@ the requested settings for a module instance. -->
   </parameter>
   <parameter name="useNonDefaultInitFile">
    <type>boolean</type>
-   <value>false</value>
+   <value>true</value>
    <derived>false</derived>
-   <enabled>false</enabled>
+   <enabled>true</enabled>
    <visible>true</visible>
    <valid>true</valid>
   </parameter>
@@ -13666,7 +13666,7 @@ the requested settings for a module instance. -->
    <type>boolean</type>
    <value>false</value>
    <derived>false</derived>
-   <enabled>false</enabled>
+   <enabled>true</enabled>
    <visible>false</visible>
    <valid>true</valid>
   </parameter>
@@ -13779,7 +13779,7 @@ the requested settings for a module instance. -->
   </parameter>
   <parameter name="derived_init_file_name">
    <type>java.lang.String</type>
-   <value>nios_accelerometer_onchip_memory.hex</value>
+   <value>C:/Users/diego/OneDrive/Documents/Work/~Year_2/Information_Processing/infoProc22/FPGA/software/infoProc22_sw/mem_init/nios_accelerometer_onchip_memory.hex</value>
    <derived>true</derived>
    <enabled>true</enabled>
    <visible>false</visible>
@@ -15904,7 +15904,11 @@ the requested settings for a module instance. -->
   </assignment>
   <assignment>
    <name>embeddedsw.CMacro.TIMESTAMP</name>
+<<<<<<< HEAD
    <value>1678998835</value>
+=======
+   <value>1679079742</value>
+>>>>>>> 3316086 (feat: generate .pof file with c code embedded)
   </assignment>
   <assignment>
    <name>embeddedsw.dts.compatible</name>
@@ -15924,7 +15928,11 @@ the requested settings for a module instance. -->
   </assignment>
   <assignment>
    <name>embeddedsw.dts.params.timestamp</name>
+<<<<<<< HEAD
    <value>1678998835</value>
+=======
+   <value>1679079742</value>
+>>>>>>> 3316086 (feat: generate .pof file with c code embedded)
   </assignment>
   <assignment>
    <name>embeddedsw.dts.vendor</name>
@@ -15940,7 +15948,11 @@ the requested settings for a module instance. -->
   </parameter>
   <parameter name="timestamp">
    <type>int</type>
+<<<<<<< HEAD
    <value>1678998835</value>
+=======
+   <value>1679079742</value>
+>>>>>>> 3316086 (feat: generate .pof file with c code embedded)
    <derived>true</derived>
    <enabled>false</enabled>
    <visible>false</visible>

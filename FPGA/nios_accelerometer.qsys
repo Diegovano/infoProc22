@@ -321,9 +321,9 @@
 }
 ]]></parameter>
  <parameter name="clockCrossingAdapter" value="HANDSHAKE" />
- <parameter name="device" value="10M50DAF484C7G" />
+ <parameter name="device" value="10M50DAF484C6GES" />
  <parameter name="deviceFamily" value="MAX 10" />
- <parameter name="deviceSpeedGrade" value="7" />
+ <parameter name="deviceSpeedGrade" value="6" />
  <parameter name="fabricMode" value="QSYS" />
  <parameter name="generateLegacySim" value="false" />
  <parameter name="generationId" value="0" />
@@ -432,8 +432,8 @@
  <module name="cpu" kind="altera_nios2_gen2" version="20.1" enabled="1">
   <parameter name="AUTO_CLK_CLOCK_DOMAIN" value="1" />
   <parameter name="AUTO_CLK_RESET_DOMAIN" value="1" />
-  <parameter name="AUTO_DEVICE" value="10M50DAF484C7G" />
-  <parameter name="AUTO_DEVICE_SPEEDGRADE" value="7" />
+  <parameter name="AUTO_DEVICE" value="10M50DAF484C6GES" />
+  <parameter name="AUTO_DEVICE_SPEEDGRADE" value="6" />
   <parameter name="bht_ramBlockType" value="Automatic" />
   <parameter name="breakOffset" value="32" />
   <parameter name="breakSlave" value="None" />
@@ -746,8 +746,8 @@
    kind="altera_nios_custom_instr_floating_point_2"
    version="20.1"
    enabled="1">
-  <parameter name="AUTO_DEVICE" value="10M50DAF484C7G" />
-  <parameter name="AUTO_DEVICE_SPEEDGRADE" value="7" />
+  <parameter name="AUTO_DEVICE" value="10M50DAF484C6GES" />
+  <parameter name="AUTO_DEVICE_SPEEDGRADE" value="6" />
   <parameter name="arithmetic_present" value="true" />
   <parameter name="comparison_present" value="true" />
   <parameter name="conversion_present" value="true" />
@@ -771,8 +771,8 @@
   <parameter name="ecc_enabled" value="false" />
   <parameter name="enPRInitMode" value="false" />
   <parameter name="enableDiffWidth" value="false" />
-  <parameter name="initMemContent" value="false" />
-  <parameter name="initializationFileName" value="onchip_mem.hex" />
+  <parameter name="initMemContent" value="true" />
+  <parameter name="initializationFileName">C:/Users/diego/OneDrive/Documents/Work/~Year_2/Information_Processing/infoProc22/FPGA/software/infoProc22_sw/mem_init/nios_accelerometer_onchip_memory.hex</parameter>
   <parameter name="instanceID" value="NONE" />
   <parameter name="memorySize" value="65536" />
   <parameter name="readDuringWriteMode" value="DONT_CARE" />
@@ -782,7 +782,7 @@
   <parameter name="singleClockOperation" value="false" />
   <parameter name="slave1Latency" value="1" />
   <parameter name="slave2Latency" value="1" />
-  <parameter name="useNonDefaultInitFile" value="false" />
+  <parameter name="useNonDefaultInitFile" value="true" />
   <parameter name="useShallowMemBlocks" value="false" />
   <parameter name="writable" value="true" />
  </module>
