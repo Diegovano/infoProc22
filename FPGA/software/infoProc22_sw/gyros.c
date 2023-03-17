@@ -13,6 +13,7 @@
 #include "GY271.h" //for magnetometer 
 #include "math.h"
 #include "system.h" //for floating point
+#include "dodgey_trig.h" //decent trig 
 
 #define OFFSET -32
 #define PWM_PERIOD 16
@@ -23,7 +24,8 @@
 #define MSEC_ESP_TX_TIMEOUT 200
 
 #define INTEGRATE_ON_BOARD false
-#define DEBUG_UART false
+#define DEBUG_UART true
+#define UART false
 
 alt_8 pwm = 0;
 alt_u8 led;
@@ -42,13 +44,20 @@ double xpos;
 float qfiltered;
 alt_u16 acc_sq;
 
-typedef struct dimension {
+typedef struct suvat {
   int acc;
   float vel;
   float pos;
-} dim;
+} suvat;
 
-dim x, y, z;
+typedef struct dimension {
+  int x;
+  int y;
+  int z;
+}dim;
+
+dim mag_bias;
+suvat x, y, z;
 
 // ====================================
 //
@@ -141,6 +150,50 @@ void magnetometer_read(alt_16 *x, alt_16 *y, alt_16 *z, alt_u8 *ready){
   *z = GY_271_Read_z();
 }
 
+void bias_mag(){
+  dim mag_max;
+  dim mag_min;
+  mag_max.x=-0xffff;mag_max.y=-0xffff;mag_max.z=-0xffff;mag_min.x=0xffff;mag_min.y=0xffff;mag_min.z=0xffff;
+  alt_16 x_read_mag, y_read_mag, z_read_mag;
+  alt_u8 ready;
+  hex_write_left(" ROTATE SLOWLY =]");
+  for(int i = 0;i<10000;i++){
+    magnetometer_read(&x_read_mag, &y_read_mag, &z_read_mag,&ready);
+    if(x_read_mag > mag_max.x) mag_max.x = x_read_mag;
+    if(x_read_mag < mag_min.x) mag_min.x = x_read_mag;
+    if(y_read_mag > mag_max.y) mag_max.y = y_read_mag;
+    if(y_read_mag < mag_min.y) mag_min.y = y_read_mag;
+    if(z_read_mag > mag_max.z) mag_max.z = z_read_mag;
+    if(z_read_mag < mag_min.z) mag_min.z = z_read_mag;
+  }
+  mag_bias.x = (mag_max.x + mag_min.x)/2; 
+  mag_bias.y = (mag_max.y + mag_min.y)/2; 
+  mag_bias.z = (mag_max.z + mag_min.z)/2;
+}
+
+void compass_direction(){
+  alt_16 x_read_mag, y_read_mag, z_read_mag;
+  alt_u8 ready;
+  //magnetometer_read(&x_read_mag, &y_read_mag, &z_read_mag,&ready);
+  GY_271_Roll_Over_read(&x_read_mag,&y_read_mag,&z_read_mag,&ready);
+  x_read_mag = (x_read_mag-mag_bias.x);
+  y_read_mag = (y_read_mag-mag_bias.y);
+  z_read_mag = (z_read_mag-mag_bias.z);
+  float roll = atan2(z.acc, sqrt(x.acc*x.acc + y.acc*y.acc));
+  float pitch = atan2(x.acc, sqrt(z.acc*z.acc + y.acc*y.acc));
+  float cosRoll = cos(roll);
+  float sinRoll = sin(roll);
+  float cosPitch = cos(pitch);
+  float sinPitch = sin(pitch);
+  float xh = x_read_mag * cosPitch + z_read_mag * sinPitch;
+  float yh = x_read_mag * sinRoll * sinPitch + y_read_mag * cosRoll - z_read_mag * sinRoll * cosPitch;
+  heading_roll = (int) (atan2(yh, xh) * 57.3);
+  //float heading = 57.3 * atan2((double)x_read_mag,(double)y_read_mag);
+  //printf("x:%d y:%d z:%d p:%d r:%d heading:%d\n",x_read_mag,y_read_mag,z_read_mag, (int)(57.3 * roll),(int)(57.3 * pitch),(int) heading_roll + 180);  //just for testing
+  //printf("A: %d x, %d y, %d z\n", (int)(x.acc), (int)(y.acc), (int)(z.acc)); 
+  //hex_write_left(itoa((int)heading_roll + 180,str,10));
+}
+
 // ====================================
 //
 // INTERRUPT CALLBACKS
@@ -154,7 +207,7 @@ void timeout_isr() {
   // pulse LED 10
   if (timer % 1000 < 100) pulse = 1; 
   else pulse = 0;
-
+ 
   #if INTEGRATE_ON_BOARD
   if (timer % MSEC_SUM_TIMEOUT == 0) {
     summation(&x.vel, abs(x.acc) > 5 ? x.acc / 1000.0f : 0); summation(&x.pos, x.vel / 1000);
@@ -182,8 +235,8 @@ void timeout_isr() {
       last_step_at = timer;
       char buffer[5]; 
       itoa(++stepcount, buffer, 10);
-      hex_write_clear();
-      hex_write_right(buffer);
+      hex_write_left("   ");
+      //hex_write_right(buffer);
       hex_write_left(buffer);
     }
     // order must be MSB, LSB
@@ -192,6 +245,7 @@ void timeout_isr() {
     alt_8 payload[] = {(alt_u8)((acc_sq & 0x3F80) >> 7), (alt_u8)(acc_sq & 0x7F)};
     alt_8 trailer = 0xFF; // trailer, indicate end of stream
 
+    #if UART
     #if DEBUG_UART
     printf("start: %d\n", header);
     #else
@@ -210,8 +264,8 @@ void timeout_isr() {
     #else
     putchar(trailer);
     #endif
+  #endif
   }
-
   #endif
 }
 
@@ -269,7 +323,7 @@ void timer_init(void (*isr)(void*, long unsigned int)) {
 // ====================================
 
 
-alt_u16 accel_abs_sq(dim x, dim y, dim z, alt_u32 grav_bias) {
+alt_u16 accel_abs_sq(suvat x, suvat y, suvat z, alt_u32 grav_bias) {
   return abs(x.acc * x.acc + y.acc * y.acc + z.acc * z.acc - grav_bias) >> 5;
 }
 
@@ -278,8 +332,6 @@ int main()
 {
   hex_write_left("STILL!");
   alt_32 x_read_acc, y_read_acc, z_read_acc;
-  alt_16 x_read_mag, y_read_mag, z_read_mag;
-  alt_u8 ready;
   alt_u16 switches;
   alt_u8 buttons;
   alt_32 *x_samples = calloc(TAPS, sizeof(alt_32));
@@ -319,8 +371,8 @@ int main()
   GY_271_setMode(1,0,2,1,1,1); 
   //bias(&x_bias, &y_bias, &z_bias, x_samples, y_samples, z_samples, quant_coefficients, acc_dev);
   alt_u32 grav_bias = bias(x_samples, y_samples, z_samples, quant_coefficients, acc_dev);
-  hex_write_left("READY!");
   // hex_write_clear();
+  bias_mag();
   // hex_write_left("AAAAA");
   while (1) {
     buttons = (~IORD_8DIRECT(BUTTON_BASE,0))&0b11; //buttons 
@@ -334,28 +386,19 @@ int main()
     acc_sq = accel_abs_sq(x, y, z, grav_bias);
 
     if (count % 100 == 0) {
-      magnetometer_read(&x_read_mag, &y_read_mag, &z_read_mag,&ready);
-      //GY_271_Roll_Over_read(&x_read_mag,&y_read_mag,&z_read_mag,&ready); 
-      float roll = atan2(z.acc, sqrt(x.acc*x.acc + y.acc*y.acc));
-      float pitch = atan2(x.acc, sqrt(z.acc*z.acc + y.acc*y.acc));
-      float cosRoll = cos(roll);
-      float sinRoll = sin(roll);
-      float cosPitch = cos(pitch);
-      float sinPitch = sin(pitch);
-      float xh = x_read_mag * cosPitch + z_read_mag * sinPitch;
-      float yh = x_read_mag * sinRoll * sinPitch + y_read_mag * cosRoll - z_read_mag * sinRoll * cosPitch;
-      heading_roll = (int) (atan2(yh, xh) * 57.3);
-      float heading = 57.3 * atan2((double)x_read_mag,(double)y_read_mag);
-      //printf("x:%d y:%d z:%d p:%d r:%d heading:%d\n",x_read_mag,y_read_mag,z_read_mag, (int)(57.3 * roll),(int)(57.3 * pitch),(int) heading + 180);  //just for testing
-      //printf("A: %d x, %d y, %d z\n", (int)(x.acc), (int)(y.acc), (int)(z.acc)); 
-      // hex_write_left(itoa((int)heading_roll + 180,str,10));
+      compass_direction();
+      char buffer[5]; 
+      itoa(heading_roll+180, buffer, 10);
+      hex_write_right("   ");
+      hex_write_right(buffer);
     }
 
-    if(buttons){
-      GY_271_Reset();
-      GY_271_setMode(0,1,2,1,1,1);
+    if(buttons&0b1){
+      bias_mag();
     }
-
+    if(buttons&0b10){
+      grav_bias = bias(x_samples, y_samples, z_samples, quant_coefficients, acc_dev);
+    }
     // convert_read(x.acc, &level, &led);
 
     // alt_u8 msg = (alt_u8)x.acc;

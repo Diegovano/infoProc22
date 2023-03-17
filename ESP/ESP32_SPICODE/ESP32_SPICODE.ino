@@ -54,7 +54,7 @@ void printLocalTime(){
     Serial.println("[NTP] | Failed to obtain time");
     printLocalTime();
   }
-  strftime(currentTime, 26, "%Y-%m-%d %H:%M:%S", &timeinfo);
+  strftime(currentTime, 26, "%FT%TZ", &timeinfo);
   Serial.print("[NTP] | ");
   Serial.println(currentTime);
 }
