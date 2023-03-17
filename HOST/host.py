@@ -8,6 +8,8 @@ import intel_jtag_uart
 
 import matplotlib.pyplot as plt
 
+import numpy as np
+
 DATA_BATCH_SIZE = 100 # if number of data points collected reaches this point then send them as one batch to AWS server.
 
 BUFFER_SIZE_PANIC = 500 # if buffer gets beyond 500 data points. Can't keep up! Is the server overloaded?
@@ -37,7 +39,8 @@ if __name__ == "__main__":
     jtag = intel_jtag_uart.intel_jtag_uart()
 
     data_batch = []
-    x = []
+    stepcount = []
+    magnetmet = []
     t = []
     tcur = 0
 
@@ -79,10 +82,13 @@ if __name__ == "__main__":
                             f"(header `{data[0]:b}` gave data point length of {point_length}, but data had length {len(data)}")
                         continue
                     for i in range(len(data)//point_length):
-                        # print(upconvert_bytes(data[i:i+point_length]))
-                        data_batch.append(upconvert_bytes(data[i:i+point_length], sgn))
-                        x.append(upconvert_bytes(data[i:i+point_length], sgn))
-                        t.append(tcur)
+                        if i == 0:
+                            stepcount.append(upconvert_bytes(data[i:i+point_length], 0))
+                            print("steps " + str(upconvert_bytes(data[i:i+point_length], 0)))
+                            t.append(tcur)
+                        elif i == 1:
+                            magnetmet.append(upconvert_bytes(data[i*point_length:(i+point_length)*point_length], 0))
+                            print("magnet " + str(upconvert_bytes(data[i*point_length:(i+point_length)*point_length], 0)))
                         tdif = (datetime.now() - last_fpga_contact).microseconds / 1e3
                         while tdif == 0:
                             tdif = (datetime.now() - last_fpga_contact).microseconds / 1e3
@@ -94,8 +100,19 @@ if __name__ == "__main__":
                     #     data_batch = []
                     #     last_upload_time = datetime.now()
     except KeyboardInterrupt:
-        fig, ax = plt.subplots()
-        ax.plot(t, x)
-        plt.show()
+        # fig, ax = plt.subplots()
+        # ax.plot(t, x)
+        # plt.show()
+        stepcountNP = np.array(stepcount)
+        magnetmetNP = np.array(magnetmet)
+        tNP = np.array(t)
+
+        # combined = np.c_[tNP, stepcountNP, magnetmetNP]
+
+        # combined.tofile('data')
+
+        stepcountNP.tofile('steps')
+        magnetmetNP.tofile('magnetz')
+        tNP.tofile('timestamp')
         # input("Press Enter to exit")
 

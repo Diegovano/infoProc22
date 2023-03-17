@@ -24,8 +24,8 @@
 #define MSEC_ESP_TX_TIMEOUT 200
 
 #define INTEGRATE_ON_BOARD false
-#define DEBUG_UART true
-#define UART false
+#define DEBUG_UART false
+#define UART true
 
 alt_8 pwm = 0;
 alt_u8 led;
@@ -187,7 +187,7 @@ void compass_direction(){
   float sinPitch = sin(pitch);
   float xh = x_read_mag * cosPitch + z_read_mag * sinPitch;
   float yh = x_read_mag * sinRoll * sinPitch + y_read_mag * cosRoll - z_read_mag * sinRoll * cosPitch;
-  heading_roll = (int) (atan2(yh, xh) * 57.3);
+  heading_roll = (int) (atan2(yh, xh) * 57.3) + 180;
   //float heading = 57.3 * atan2((double)x_read_mag,(double)y_read_mag);
   //printf("x:%d y:%d z:%d p:%d r:%d heading:%d\n",x_read_mag,y_read_mag,z_read_mag, (int)(57.3 * roll),(int)(57.3 * pitch),(int) heading_roll + 180);  //just for testing
   //printf("A: %d x, %d y, %d z\n", (int)(x.acc), (int)(y.acc), (int)(z.acc)); 
@@ -242,7 +242,7 @@ void timeout_isr() {
     // order must be MSB, LSB
     alt_8 header = 0b11000010; // first two bits header, third unsigned, rest represent number of segments per reconstructed type. Here we are reconstructing one variable, with 14 bits transmitted for each.
     // alt_8 payload[] = {(alt_8)((x.acc & 0x3F80) >> 7), (alt_8)(x.acc & 0x7F)/*, (alt_8)(y.acc & 0x7F), (alt_8)((y.acc & 0x3F80) >> 7), (alt_8)(z.acc & 0x7F), (alt_8)((z.acc & 0x3F80) >> 7)*/};
-    alt_8 payload[] = {(alt_u8)((acc_sq & 0x3F80) >> 7), (alt_u8)(acc_sq & 0x7F)};
+    alt_8 payload[] = {(alt_u8)((stepcount & 0x3F80) >> 7), (alt_u8)(stepcount & 0x7F), (alt_u8)((heading_roll & 0x3F80) >> 7), (alt_u8)(heading_roll & 0x7F)};
     alt_8 trailer = 0xFF; // trailer, indicate end of stream
 
     #if UART
@@ -388,7 +388,7 @@ int main()
     if (count % 100 == 0) {
       compass_direction();
       char buffer[5]; 
-      itoa(heading_roll+180, buffer, 10);
+      itoa(heading_roll, buffer, 10);
       hex_write_right("   ");
       hex_write_right(buffer);
     }
