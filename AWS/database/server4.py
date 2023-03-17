@@ -4,12 +4,7 @@ import boto3
 from pprint import pprint
 from datetime import datetime
 import decimal 
-import threading
-
-# for a given device, get 5 consecutive samples and make them to a numpy arraay,
-#  where the first column is the timestamp, the second column is the total steps, 
-# third is direction
-#keep sending sets of 5 at a time
+import select
 
 def create_table(table_name, dynamodb = None):
     if not dynamodb:
@@ -72,7 +67,7 @@ def add_item(table_name, input_json, dynamodb=None):
     try:
         input_dict = json.loads(input_json)
              
-    except json.JSONDecodeError:  
+    except json.JSONDecodeError:
         return f"Error: invalid input JSON format"
      
     # Check that required keys are present in the input dictionary
@@ -99,59 +94,59 @@ table = create_table(table_name, dynamodb)
 #select a server port
 server_port = 12000
 #create a welcoming socket
-connections = []
-nicknames = []
 welcome_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 welcome_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 #bind the server to the localhost at port server_port
 welcome_socket.bind(('0.0.0.0',server_port))
-welcome_socket.listen(5)
-def leave(connection,nickname):
-	connections.remove(connection)
-	connection.close()
-	broadcast(nickname + " left!")
-	nicknames.remove(nickname)
+welcome_socket.listen(2)
+#ready message
+print('Server running on port ', server_port)
 
-def broadcast(message):
-	for conection in connections:
-		conection.send(message.encode())
-
-def threaded_client(connections, nicknames):
-	while True:
-                cmsg = connections.recv(128)
-                print(cmsg)
-                if not cmsg:
-                    break
-                messages = cmsg.split(b"\n")
+connection_socket, caddr = welcome_socket.accept()
+#Now the main server loop
+try: 
+    sockets = [welcome_socket]  # list of sockets to monitor
+    clients = {}  # dictionary of client sockets and their addresses
+    while True:
+        connection_socket, caddr = welcome_socket.accept()
+        readable, _, _ = select.select(sockets, [], [])  # wait for a socket to be ready to read
+        for sock in readable:
+            if sock is welcome_socket:  # new client connection
+                connection_socket, caddr = sock.accept()
+                sockets.append(connection_socket)
+                clients[connection_socket] = caddr
+                print('New client connected:', caddr)
+                 # existing client data received
+            else:
+                cmsg = sock.recv(128)
+                # process client data
+                messages = cmsg.split(b"\r\n")
                 for message in messages:
                     message = message.strip()
                     if message:
                         print("Decoding",message)
-                        try:
-                            decoded_data = json.loads(message.decode())
-                            print(decoded_data)
-                            response = add_item(table_name, json.dumps(decoded_data), dynamodb)
-                            # print('ELLADA!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-                            response_msg = str(response).encode()
-                            connections.send(response_msg)
-                            response_msg = 'c'.encode()
-                            connections.send(response_msg)
-                            #print(response)
-                        except json.decoder.JSONDecodeError:
-                                print("Failed to decode!")
+                        decoded_data = json.loads(message.decode())
+                        print(decoded_data)
+                        response = add_item(table_name, json.dumps(decoded_data), dynamodb)
+                         # print('ELLADA!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+                        response_msg = str(response).encode()
+                        connection_socket.send(response_msg)
+                        response_msg = 'c'.encode()
+                        connection_socket.send(response_msg)
+                        #print(response)
+                        cmsg = connection_socket.recv(1024)
+                        print(cmsg)
+                if not message:
+                    break
+               
+                        
+except KeyboardInterrupt:
+    connection_socket.close()
+    welcome_socket.close()
 
-#Now the main server loop
-while True:
-	#notice recv and send instead of recvto and sendto
-	Client, address = welcome_socket.accept()
-	nickname = Client.recv(1024).decode()
-	nicknames.append(nickname)
-	connections.append(Client)
-	print("Nickname is: " + nickname)
-	Client.send(("Connected to server!\nHi "+nickname+" use \"exit\" to leave have fun ;)").encode())
-	broadcast(nickname + " Joined!")
-	thread = threading.Thread(target=threaded_client,args=(Client,nickname,))
-	thread.start()
+# except KeyboardInterrupt:
+#     connection_socket.close()
+#     welcome_socket.close()
 
 
 #  sockets = [welcome_socket]  # list of sockets to monitor

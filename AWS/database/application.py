@@ -31,6 +31,6 @@ def get_info():
 # //http://ip:port/get_info?device_id=1
 
 if __name__ == '__main__':
-    app.run(debug = True, host = "0.0.0.0", port= 5000)
+    app.run(debug = True, host = "0.0.0.0", port= 8080)
     
 # timestamp, total steps and device id, heading 
