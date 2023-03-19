@@ -84,11 +84,11 @@ if __name__ == "__main__":
                     for i in range(len(data)//point_length):
                         if i == 0:
                             stepcount.append(upconvert_bytes(data[i:i+point_length], 0))
-                            print("steps " + str(upconvert_bytes(data[i:i+point_length], 0)))
+                            # print("steps " + str(upconvert_bytes(data[i:i+point_length], 0)))
                             t.append(tcur)
                         elif i == 1:
                             magnetmet.append(upconvert_bytes(data[i*point_length:(i+point_length)*point_length], 0))
-                            print("magnet " + str(upconvert_bytes(data[i*point_length:(i+point_length)*point_length], 0)))
+                            # print("magnet " + str(upconvert_bytes(data[i*point_length:(i+point_length)*point_length], 0)))
                         tdif = (datetime.now() - last_fpga_contact).microseconds / 1e3
                         while tdif == 0:
                             tdif = (datetime.now() - last_fpga_contact).microseconds / 1e3
@@ -100,19 +100,33 @@ if __name__ == "__main__":
                     #     data_batch = []
                     #     last_upload_time = datetime.now()
     except KeyboardInterrupt:
-        # fig, ax = plt.subplots()
-        # ax.plot(t, x)
-        # plt.show()
+        fig, ax = plt.subplots()
+        # np.save('steps', np.array(stepcount))
+        # np.save('magnt', np.array(magnetmet))
+        # np.save('times', np.array(t))
+
         stepcountNP = np.array(stepcount)
         magnetmetNP = np.array(magnetmet)
         tNP = np.array(t)
 
-        # combined = np.c_[tNP, stepcountNP, magnetmetNP]
+        maxsize = max(stepcountNP.shape[0], magnetmetNP.shape[0], tNP.shape[0])
+
+        if(stepcountNP.shape[0] != maxsize):
+            stepcountNP = np.append(stepcountNP, 0)
+        if(magnetmetNP.shape[0] != maxsize):
+            magnetmetNP = np.append(magnetmetNP, 0)
+        if(tNP.shape[0] != maxsize):
+            tNP = np.append(tNP, 0)
+
+        ax.plot(tNP, magnetmetNP)
+        ax.plot(tNP, stepcountNP)
+        plt.show()
+
+        combined = np.c_[tNP, stepcountNP, magnetmetNP]
+
+        np.save('changData_' + datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), combined)
 
         # combined.tofile('data')
 
-        stepcountNP.tofile('steps')
-        magnetmetNP.tofile('magnetz')
-        tNP.tofile('timestamp')
         # input("Press Enter to exit")
 

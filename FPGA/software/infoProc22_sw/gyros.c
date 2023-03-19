@@ -231,7 +231,8 @@ void timeout_isr() {
   }
 
   if (timer % MSEC_UART_TX_TIMEOUT == 0) {
-    if (timer - last_step_at > 500 && acc_sq > 1000) {
+    int switches = IORD_16DIRECT(SWITCH_BASE, 0); //switches
+    if (switches & 1 && timer - last_step_at > 500 && acc_sq > 1000 ) {
       last_step_at = timer;
       char buffer[5]; 
       itoa(++stepcount, buffer, 10);
@@ -385,7 +386,7 @@ int main()
 
     acc_sq = accel_abs_sq(x, y, z, grav_bias);
 
-    if (count % 100 == 0) {
+    if (count % 10 == 0) {
       compass_direction();
       char buffer[5]; 
       itoa(heading_roll, buffer, 10);
