@@ -95,31 +95,50 @@ def add_item(table_name, input_json, dynamodb=None):
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 table_name = 'di_data10'
 table = create_table(table_name, dynamodb)
+def last_total_steps(device_id):
+    dynamodb = boto3.client('dynamodb', region_name='us-east-1')
+    # device_id to query (so far either 1 or 2) 
+    # set up the query parameters
+    query_params = {
+        'TableName': 'di_data10',
+        'KeyConditionExpression': 'device_id = :device_id',
+        'ExpressionAttributeValues': {
+            ':device_id': {'S': device_id},
+        },
+        'ScanIndexForward': False,
+        'Limit': 1
+    }
+    response = dynamodb.query(**query_params)
+
+    if len(response['Items']) > 0:
+        last_total_steps = int(response['Items'][0]['total_steps']['N'])
+        print(last_total_steps)
+    else:
+        print("No data found for the specified device id.")
 
 #select a server port
 server_port = 12000
 #create a welcoming socket
 connections = []
-nicknames = []
+nicknames = {}
 welcome_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 welcome_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 #bind the server to the localhost at port server_port
 welcome_socket.bind(('0.0.0.0',server_port))
 welcome_socket.listen(5)
 def leave(connection,nickname):
-	connections.remove(connection)
-	connection.close()
-	broadcast(nickname + " left!")
-	nicknames.remove(nickname)
+    connections.remove(connection)
+    connection.close()
+    broadcast(nickname + " left!")
+    nicknames.remove(nickname)
 
 def broadcast(message):
-	for conection in connections:
-		conection.send(message.encode())
+    for conection in connections:
+        conection.send(message.encode())
 
-def threaded_client(connections):
-	while True:
+def threaded_client(connections,nickname):
+    while True:
                 cmsg = connections.recv(128)
-                print(cmsg)
                 if not cmsg:
                     break
                 messages = cmsg.split(b"\n")
@@ -130,11 +149,20 @@ def threaded_client(connections):
                         try:
                             decoded_data = json.loads(message.decode())
                             print(decoded_data)
-                            response = add_item(table_name, json.dumps(decoded_data), dynamodb)
-                            # print('ELLADA!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-                            response_msg = str(response).encode()
-                            #connections.send(response_msg)
-                            response_msg = 'c'.encode()
+                            add_item(table_name, json.dumps(decoded_data), dynamodb)
+                            nicknames[nickname] = last_total_steps(nickname)
+                            nick_list = list(nicknames.items())  # = [[key, value], [key, value]]
+                            nick_list.sort(key=lambda pair: pair[1])
+                            index = -1
+                            for  i in range(len(nick_list)):
+                                nick_pair = nick_list[i]
+                                if nick_pair[0] == nickname:
+                                     index = i
+                            if index == -1:
+                                 response_msg="69".encode()
+                                 print("shit balls")
+                            else:
+                                response_msg = str(index+1).encode()
                             connections.send(response_msg)
                             #print(response)
                         except json.decoder.JSONDecodeError:
@@ -142,16 +170,15 @@ def threaded_client(connections):
 
 #Now the main server loop
 while True:
-	#notice recv and send instead of recvto and sendto
-	Client, address = welcome_socket.accept()
-	#nickname = Client.recv(1024).decode()
-	#nicknames.append(nickname)
-	connections.append(Client)
-	#print("Nickname is: " + nickname)
-	Client.send(("Connected to server!\nHi use \"exit\" to leave have fun ;)").encode())
-	#broadcast(nickname + " Joined!")
-	thread = threading.Thread(target=threaded_client,args=(Client,))
-	thread.start()
+    #notice recv and send instead of recvto and sendto
+    Client, address = welcome_socket.accept()
+    nickname = Client.recv(1024).decode()
+    nicknames[nickname] = 0
+    connections.append(Client)
+    print("Device ID: " + nickname)
+    Client.send('c'.encode())
+    thread = threading.Thread(target=threaded_client,args=(Client, nickname,))
+    thread.start()
 
 
 #  sockets = [welcome_socket]  # list of sockets to monitor
