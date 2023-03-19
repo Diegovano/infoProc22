@@ -116,7 +116,7 @@ def broadcast(message):
 	for conection in connections:
 		conection.send(message.encode())
 
-def threaded_client(connections, nicknames):
+def threaded_client(connections):
 	while True:
                 cmsg = connections.recv(128)
                 print(cmsg)
@@ -133,7 +133,7 @@ def threaded_client(connections, nicknames):
                             response = add_item(table_name, json.dumps(decoded_data), dynamodb)
                             # print('ELLADA!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
                             response_msg = str(response).encode()
-                            connections.send(response_msg)
+                            #connections.send(response_msg)
                             response_msg = 'c'.encode()
                             connections.send(response_msg)
                             #print(response)
@@ -144,13 +144,13 @@ def threaded_client(connections, nicknames):
 while True:
 	#notice recv and send instead of recvto and sendto
 	Client, address = welcome_socket.accept()
-	nickname = Client.recv(1024).decode()
-	nicknames.append(nickname)
+	#nickname = Client.recv(1024).decode()
+	#nicknames.append(nickname)
 	connections.append(Client)
-	print("Nickname is: " + nickname)
-	Client.send(("Connected to server!\nHi "+nickname+" use \"exit\" to leave have fun ;)").encode())
-	broadcast(nickname + " Joined!")
-	thread = threading.Thread(target=threaded_client,args=(Client,nickname,))
+	#print("Nickname is: " + nickname)
+	Client.send(("Connected to server!\nHi use \"exit\" to leave have fun ;)").encode())
+	#broadcast(nickname + " Joined!")
+	thread = threading.Thread(target=threaded_client,args=(Client,))
 	thread.start()
 
 
