@@ -7,13 +7,13 @@ ESP32SPISlave slave;
 WiFiServer WifiServer(12000);
 WiFiClient client = WifiServer.available();
 
-static constexpr uint32_t BUFFER_SIZE {32};
+static constexpr uint32_t BUFFER_SIZE {2};
 uint8_t spi_slave_tx_buf[BUFFER_SIZE];
 uint8_t spi_slave_rx_buf[BUFFER_SIZE];
 
 // Replace with your network credentials
-const char* ssid = "Bfyvhygydnn";
-const char* password = "dogsandcats";
+const char* ssid = "Diego-XPS";
+const char* password = "helloGitHub!";
 
 //Server we are sending the data to and connection timeout in ms
 const char *ip = "13.41.53.180";
@@ -99,6 +99,8 @@ void setup() {
   total_steps = 0;
 
   WifiServer.begin();
+
+  sendRequest("Cozzy");
 }
 
 
@@ -118,16 +120,6 @@ void sendRequest(const char* Message) {
         client.println(Message); 
         Serial.print("[TCP_Tx] | ");
         Serial.println(Message);
-
-        // read entire response untill hit newline char
-        Serial.print("[TCP_Rx] | ");  
-
-        while (!client.available());                // wait for response
-      
-        String val;
-        val = client.readStringUntil('\n');
-        Serial.print(val);
-        Serial.println();
 
     } 
     else {
@@ -163,13 +155,6 @@ void sendRequest(const char* Message) {
 
 
 void loop() {
-    //Fill the tx buf before recieving a transaction
-    Serial.print("[SPI_Tx]  | ");
-    for(int i=0; i < 8; i++){
-      spi_slave_tx_buf[i] = i;
-      printf("%d | ", spi_slave_tx_buf[i]);
-    }
-    printf("\n");
 
     // block until the transaction comes from master
     slave.wait(spi_slave_rx_buf, spi_slave_tx_buf, BUFFER_SIZE);
@@ -183,9 +168,17 @@ void loop() {
 
         //print the full Spi Rx Buffer
         Serial.print("[SPI_Rx]  | ");
-        for(int i=0; i < 8; i++){
+        for(int i=0; i < 2; i++){
           int val = spi_slave_rx_buf[i];
           printf("%d | ", val);
+        }
+        printf("\n");
+
+        //print the full Spi Rx Buffer
+        Serial.print("[SPI_Tx]  | ");
+        for(int i=0; i < 2; i++){
+          spi_slave_tx_buf[i] = 65;
+          printf("%d | ", spi_slave_tx_buf[i]);
         }
         printf("\n");
 
