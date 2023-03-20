@@ -19,9 +19,11 @@
 #define PWM_PERIOD 16
 #define EST 13
 #define TAPS 49
+#define TAPS_MAG 20
 #define MSEC_SUM_TIMEOUT 5
 #define MSEC_UART_TX_TIMEOUT 5
 #define MSEC_ESP_TX_TIMEOUT 200
+#define STRIDE_LENGTH 0.73
 
 #define INTEGRATE_ON_BOARD false
 #define DEBUG_UART false
@@ -33,7 +35,10 @@ alt_u32 timer = 0;
 int level;
 int pulse; 
 int Lightshift;
-int heading_roll;
+float heading_roll;
+
+alt_u8 recv[3] = {0};
+alt_u8 send[2] = {0};
 
 int stepcount = 0;
 alt_u32 last_step_at = 0;
@@ -43,6 +48,11 @@ double xaccel;
 double xpos;
 float qfiltered;
 alt_u16 acc_sq;
+
+typedef struct position{
+  float x;
+  float y;
+} pos;
 
 typedef struct suvat {
   int acc;
@@ -58,6 +68,7 @@ typedef struct dimension {
 
 dim mag_bias;
 suvat x, y, z;
+pos location;
 
 // ====================================
 //
@@ -171,7 +182,16 @@ void bias_mag(){
   mag_bias.z = (mag_max.z + mag_min.z)/2;
 }
 
-void compass_direction(){
+void compass_heading(float *samples_x,float* samples_y){
+  float sum_x = 0 ,sum_y = 0;
+  for(int i = 0;i < TAPS_MAG;i++){
+    sum_x += samples_x[i];
+    sum_y += samples_y[i];
+  }
+  heading_roll = atan2(sum_y,sum_x);
+}
+
+void compass_direction(float *samples_x,float* samples_y,int count){
   alt_16 x_read_mag, y_read_mag, z_read_mag;
   alt_u8 ready;
   //magnetometer_read(&x_read_mag, &y_read_mag, &z_read_mag,&ready);
@@ -187,7 +207,13 @@ void compass_direction(){
   float sinPitch = sin(pitch);
   float xh = x_read_mag * cosPitch + z_read_mag * sinPitch;
   float yh = x_read_mag * sinRoll * sinPitch + y_read_mag * cosRoll - z_read_mag * sinRoll * cosPitch;
-  heading_roll = (int) (atan2(yh, xh) * 57.3) + 180;
+  // float sample = atan2(yh, xh);
+  // char buffer[5]; 
+  // itoa((int)( sample*57.3 +180), buffer, 10);
+  // hex_write_left("   ");
+  // hex_write_left(buffer);
+  samples_y[count % TAPS_MAG] = yh; //heading roll
+  samples_x[count % TAPS_MAG] = xh;
   //float heading = 57.3 * atan2((double)x_read_mag,(double)y_read_mag);
   //printf("x:%d y:%d z:%d p:%d r:%d heading:%d\n",x_read_mag,y_read_mag,z_read_mag, (int)(57.3 * roll),(int)(57.3 * pitch),(int) heading_roll + 180);  //just for testing
   //printf("A: %d x, %d y, %d z\n", (int)(x.acc), (int)(y.acc), (int)(z.acc)); 
@@ -223,11 +249,23 @@ void timeout_isr() {
   #else
 
   if (timer % MSEC_ESP_TX_TIMEOUT == 0) {
-    alt_u8 send[2];
+
     send[0] = stepcount;
     send[1] = heading_roll;
-    alt_avalon_spi_command(SPI_BASE, 0, 2, send, 0, 0, 0);
-    //alt_avalon_spi_command(SPI_BASE, 0, 1, &stepcount, 0, 0, 0);
+
+    int RECV_BUFFER_SIZE = 1;
+    int SEND_BUFFER_SIZE = 2;
+
+    int length = alt_avalon_spi_command(SPI_BASE, 0, SEND_BUFFER_SIZE, send, SEND_BUFFER_SIZE + RECV_BUFFER_SIZE, recv, 0);
+
+    printf("%d | ", recv[0]);
+    printf("\n");
+
+    // if(recv[0] != 0){
+    //   char buffer[5]; 
+    //   itoa(recv[0], buffer, 10);
+    //   hex_write_left(buffer);
+    // }
   }
 
   if (timer % MSEC_UART_TX_TIMEOUT == 0) {
@@ -235,9 +273,11 @@ void timeout_isr() {
     if (switches & 1 && timer - last_step_at > 500 && acc_sq > 1000 ) {
       last_step_at = timer;
       char buffer[5]; 
+      location.x += STRIDE_LENGTH*sin(heading_roll);
+      location.y += STRIDE_LENGTH*cos(heading_roll);
       itoa(++stepcount, buffer, 10);
       hex_write_left("   ");
-      //hex_write_right(buffer);
+      hex_write_right(buffer);
       hex_write_left(buffer);
     }
     // order must be MSB, LSB
@@ -333,6 +373,8 @@ int main()
 {
   hex_write_left("STILL!");
   alt_32 x_read_acc, y_read_acc, z_read_acc;
+  float samples_mag_x[TAPS_MAG];
+  float samples_mag_y[TAPS_MAG];
   alt_u16 switches;
   alt_u8 buttons;
   alt_32 *x_samples = calloc(TAPS, sizeof(alt_32));
@@ -363,17 +405,17 @@ int main()
   led_timer_init(sys_timer_isr);
   timer_init(timeout_isr);
 
-  switches = IORD_16DIRECT(SWITCH_BASE,0); //switches
+  
 
-  int count = 0;
+  int count = 0, count2 =0;
   char str[32];
   GY_271_init(MAGNETOMETER_BASE,50000000,100000);
   GY_271_Reset(); 
   GY_271_setMode(1,0,2,1,1,1); 
   //bias(&x_bias, &y_bias, &z_bias, x_samples, y_samples, z_samples, quant_coefficients, acc_dev);
   alt_u32 grav_bias = bias(x_samples, y_samples, z_samples, quant_coefficients, acc_dev);
-  // hex_write_clear();
   bias_mag();
+  hex_write_clear();
   // hex_write_left("AAAAA");
   while (1) {
     buttons = (~IORD_8DIRECT(BUTTON_BASE,0))&0b11; //buttons 
@@ -387,18 +429,26 @@ int main()
     acc_sq = accel_abs_sq(x, y, z, grav_bias);
 
     if (count % 10 == 0) {
-      compass_direction();
+      compass_direction(samples_mag_x,samples_mag_y,count2);
+      count2++;
+    }
+
+    if (count % 100 == 0) {
+      compass_heading(samples_mag_x,samples_mag_y);
       char buffer[5]; 
-      itoa(heading_roll, buffer, 10);
+      itoa((int)(heading_roll*57.3 +180), buffer, 10);
       hex_write_right("   ");
       hex_write_right(buffer);
     }
 
     if(buttons&0b1){
       bias_mag();
+      hex_write_clear();
     }
+
     if(buttons&0b10){
       grav_bias = bias(x_samples, y_samples, z_samples, quant_coefficients, acc_dev);
+      hex_write_clear();
     }
     // convert_read(x.acc, &level, &led);
 

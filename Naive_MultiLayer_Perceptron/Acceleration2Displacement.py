@@ -5,6 +5,11 @@ from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from torch.utils.data import random_split
 from torch.utils.data import TensorDataset
+from sklearn.linear_model import LogisticRegression
+import steptoy as toy
+from tqdm import tqdm
+import matplotlib as plot
+
 DEVICE = 'cuda'
 BATCH_SIZE = 1024
 N_WORKERS = 0
@@ -14,6 +19,28 @@ N_CONCEPTS = 500
 HPARAMS = ((0.001, 10), 
 		   (0.001, 200))
 seedyseed = 1412
+
+class toydataset(Dataset):
+	def __init__(self, generated):
+		self.features = generated['features'][:]
+		self.labels = generated['labels'][:]
+		self.features = self.features.astype('float32')
+		self.labels = self.labels.astype('float32')
+	
+	def __len__(self):
+		return len(self.features)
+	
+	def __getitem__(self, idx):
+		return [self.features[idx], self.labels[idx]]
+
+	def get_splits(self, n_test=0.33):
+		# determine sizes
+		test_size = round(n_test * len(self.features))
+		train_size = len(self.features) - test_size
+		# calculate the split
+		return random_split(self, [train_size, test_size])
+
+
 class Model(nn.Module):
 	def __init__(self, layer_sizes=[2, 16, 16, 1], activation=nn.ReLU,
 				 final_activation=None, lr=0.001,  loss=nn.functional.cross_entropy,
@@ -59,7 +86,7 @@ class Model(nn.Module):
 		self.train()
 		losses = {}
 		test_losses = {}
-		for epoch in range(n_epoch):  # loop over the dataset multiple times
+		for epoch in tqdm(range(n_epoch)):  # loop over the dataset multiple times
 			running_loss = 0.0
 			for i, data in enumerate(trainloader):
 				inputs, labels = data
@@ -80,6 +107,7 @@ class Model(nn.Module):
 
 				loss.backward()
 				self.optimizer.step()
+				print(loss)
 				
 				# Skip the rest if there's no validation set.
 				if testloader is None:
@@ -97,7 +125,7 @@ class Model(nn.Module):
 						loss = self.loss(outputs, labels)
 						test_losses[epoch*len(trainloader)+i] = loss.mean().item()
 				self.train()
-			print(epoch)
+			#print(epoch)
 
 			if testloader is None:
 				continue
@@ -108,28 +136,48 @@ def obs_to_concepts(o):
 	return o[1]
 
 def a_to_x(train, test, seed, hparams):
-	n_concepts = len(obs_to_concepts(train[0]))
 	
 	a_to_x_train_loader = DataLoader(TensorDataset(torch.tensor([[o[0]] for o in train]), torch.tensor([[o[1]] for o in train], dtype=torch.float32)), batch_size=BATCH_SIZE, shuffle=True, num_workers=N_WORKERS)
 	a_to_x_test_loader = DataLoader(TensorDataset(torch.tensor([[o[0]] for o in test]), torch.tensor([[o[1]] for o in test], dtype=torch.float32)), batch_size=BATCH_SIZE, shuffle=False, num_workers=N_WORKERS)
 
-	a_to_x_model = Model(layer_sizes=[24, 128, 128, n_concepts], 
+	a_to_x_model = Model(layer_sizes=[10,1024,1024,128,2], 
 				  activation=nn.ReLU,
 				  final_activation=None,
 				  lr=hparams[0],
-				  loss=nn.functional.binary_cross_entropy_with_logits, device='cuda')
+				  loss=nn.functional.l1_loss, device='cuda')
 
 	train_loss, test_loss = a_to_x_model.fit(a_to_x_train_loader, None, n_epoch=hparams[1])
 
 	concept_labels = [obs_to_concepts(o) for o in test]
 	concept_logits = a_to_x_model.predict(a_to_x_test_loader).cpu()
 	concept_preds = torch.sigmoid(concept_logits) > 0.5
-
-	# print(f'Concept 0 acc: {accuracy_score([c[0] for c in concept_labels], concept_preds[:,0].cpu())}')
-	# print(f'Concept 1 acc: {accuracy_score([c[1] for c in concept_labels], concept_preds[:,1].cpu())}')
+	print("=============================")
+	result = np.c_[[c[0] for c in concept_labels],[c[1] for c in concept_labels], concept_logits]
+	print(np.c_[[c[0] for c in concept_labels],[c[1] for c in concept_labels], concept_logits])
+	print("=============================")
+	#print(f'Concept 0 acc: {accuracy_score([c[0] for c in concept_labels], concept_preds[:,0].cpu())}')
+	#print(f'Concept 1 acc: {accuracy_score([c[1] for c in concept_labels], concept_preds[:,1].cpu())}')
 	# print(f'Concept 2 acc: {accuracy_score([c[2] for c in concept_labels], concept_preds[:,2].cpu())}')
 	#pd.DataFrame({'train': train_loss, 'test': test_loss}).plot(
 	#	title=f'Features to Concepts - {n_concepts}, {seed}')
 	#plt.show()
 	
-	return a_to_x_model
+	return a_to_x_model, result
+
+dataa = toy.datagen(10000,5, True, 0.01)
+dataset = toydataset(dataa)
+train, test = dataset.get_splits()
+HPARAMS = ((0.01, 1000), 
+		   (0.001, 200))
+
+modl,result = a_to_x(train, test, 1111, HPARAMS[0])
+
+
+torch.save(modl, "C:\\Users\\eddyc\\Documents\\IP\\models\\model1000epoch10000data.pth")
+
+a_to_x_test_loader = DataLoader(TensorDataset(torch.tensor([[o[0]] for o in test]), torch.tensor([[o[1]] for o in test], dtype=torch.float32)), batch_size=BATCH_SIZE, shuffle=False, num_workers=N_WORKERS)
+
+the_model = torch.load("C:\\Users\\eddyc\\Documents\\IP\\models\\model1000epoch10000data.pth")
+
+concept_logits = the_model.predict(a_to_x_test_loader)
+print(concept_logits)
