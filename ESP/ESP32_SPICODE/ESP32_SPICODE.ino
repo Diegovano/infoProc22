@@ -7,13 +7,13 @@ ESP32SPISlave slave;
 WiFiServer WifiServer(12000);
 WiFiClient client = WifiServer.available();
 
-static constexpr uint32_t BUFFER_SIZE {2};
+static constexpr uint32_t BUFFER_SIZE {3};
 uint8_t spi_slave_tx_buf[BUFFER_SIZE];
-uint8_t spi_slave_rx_buf[BUFFER_SIZE];
+uint8_t spi_slave_rx_buf[2];
 
 // Replace with your network credentials
-const char* ssid = "Diego-XPS";
-const char* password = "helloGitHub!";
+const char* ssid = "SlicesFibre2.4GHz";
+const char* password = "pg10gvi1bs";
 
 //Server we are sending the data to and connection timeout in ms
 const char *ip = "13.41.53.180";
@@ -100,6 +100,7 @@ void setup() {
 
   WifiServer.begin();
 
+  slave.setQueueSize(64);
   sendRequest("Cozzy");
 }
 
@@ -145,8 +146,14 @@ void sendRequest(const char* Message) {
 
     String val;
     val = client.readStringUntil('\n');
-    Serial.print(val);
-    Serial.println();
+    Serial.println(val);
+
+    Serial.println("--------------[SPI_Tx COMM]-----------");
+
+    //print the full Spi Tx Buffer
+    Serial.print("[SPI_Tx]  | ");
+    Serial.println(val);
+    spi_slave_tx_buf[BUFFER_SIZE - 1] = val.toInt();
   }
 
   // client.stop();
@@ -156,31 +163,24 @@ void sendRequest(const char* Message) {
 
 void loop() {
 
-    // block until the transaction comes from master
-    slave.wait(spi_slave_rx_buf, spi_slave_tx_buf, BUFFER_SIZE);
+    bool successful_transfer = slave.wait(spi_slave_rx_buf, spi_slave_tx_buf, BUFFER_SIZE);
 
+    // slave.yield();
     // if transaction has completed from master,
     // available() returns size of results of transaction,
     // and `spi_slave_rx_buf` is automatically updated
-    while (slave.available() > 1) {
+    while (slave.available()) {
         Serial.println("=====================================[TRANSMISSION BLOCK]===================================");
-        Serial.println("--------------[SPI COMM]-----------");
-
+        Serial.println("--------------[SPI_Rx COMM]-----------");
+        
         //print the full Spi Rx Buffer
         Serial.print("[SPI_Rx]  | ");
-        for(int i=0; i < 2; i++){
+        for(int i=0; i < slave.size(); i++){
           int val = spi_slave_rx_buf[i];
           printf("%d | ", val);
         }
         printf("\n");
 
-        //print the full Spi Rx Buffer
-        Serial.print("[SPI_Tx]  | ");
-        for(int i=0; i < 2; i++){
-          spi_slave_tx_buf[i] = 65;
-          printf("%d | ", spi_slave_tx_buf[i]);
-        }
-        printf("\n");
 
         //update the current time
         if(printLocalTime()){
@@ -195,10 +195,7 @@ void loop() {
           //send the formatted string
           sendRequest(PostData);
 
-          slave.pop();//Remove the read part of the Spi Rx Buffer
-          slave.pop();
-
         }
-
+        slave.pop();
     }
 }

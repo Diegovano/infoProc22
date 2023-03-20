@@ -4,12 +4,21 @@
  kind="nios_accelerometer"
  version="1.0"
  fabric="QSYS">
+<<<<<<< HEAD
  <!-- Format version 20.1 711 (Future versions may contain additional information.) -->
  <!-- 2023.03.20.14:05:28 -->
  <!-- A collection of modules and connections -->
  <parameter name="AUTO_GENERATION_ID">
   <type>java.lang.Integer</type>
   <value>1679321128</value>
+=======
+ <!-- Format version 20.1 720 (Future versions may contain additional information.) -->
+ <!-- 2023.03.20.15:18:36 -->
+ <!-- A collection of modules and connections -->
+ <parameter name="AUTO_GENERATION_ID">
+  <type>java.lang.Integer</type>
+  <value>1679325516</value>
+>>>>>>> d1c671eefae54e3bf6bb51e01dddbbba8cbf46f8
   <derived>false</derived>
   <enabled>true</enabled>
   <visible>false</visible>
@@ -14336,7 +14345,7 @@ the requested settings for a module instance. -->
   </assignment>
   <assignment>
    <name>embeddedsw.CMacro.TARGETSSDELAY</name>
-   <value>"10000.0"</value>
+   <value>"0.0"</value>
   </assignment>
   <assignment>
    <name>embeddedsw.dts.compatible</name>
@@ -14444,7 +14453,7 @@ the requested settings for a module instance. -->
   </parameter>
   <parameter name="targetSlaveSelectToSClkDelay">
    <type>double</type>
-   <value>10000.0</value>
+   <value>0.0</value>
    <derived>false</derived>
    <enabled>false</enabled>
    <visible>true</visible>
@@ -15904,7 +15913,11 @@ the requested settings for a module instance. -->
   </assignment>
   <assignment>
    <name>embeddedsw.CMacro.TIMESTAMP</name>
+<<<<<<< HEAD
    <value>1679321128</value>
+=======
+   <value>1679325516</value>
+>>>>>>> d1c671eefae54e3bf6bb51e01dddbbba8cbf46f8
   </assignment>
   <assignment>
    <name>embeddedsw.dts.compatible</name>
@@ -15924,7 +15937,11 @@ the requested settings for a module instance. -->
   </assignment>
   <assignment>
    <name>embeddedsw.dts.params.timestamp</name>
+<<<<<<< HEAD
    <value>1679321128</value>
+=======
+   <value>1679325516</value>
+>>>>>>> d1c671eefae54e3bf6bb51e01dddbbba8cbf46f8
   </assignment>
   <assignment>
    <name>embeddedsw.dts.vendor</name>
@@ -15940,7 +15957,11 @@ the requested settings for a module instance. -->
   </parameter>
   <parameter name="timestamp">
    <type>int</type>
+<<<<<<< HEAD
    <value>1679321128</value>
+=======
+   <value>1679325516</value>
+>>>>>>> d1c671eefae54e3bf6bb51e01dddbbba8cbf46f8
    <derived>true</derived>
    <enabled>false</enabled>
    <visible>false</visible>
