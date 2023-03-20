@@ -7,13 +7,13 @@ ESP32SPISlave slave;
 WiFiServer WifiServer(12000);
 WiFiClient client = WifiServer.available();
 
-static constexpr uint32_t BUFFER_SIZE {3};
+static constexpr uint32_t BUFFER_SIZE {12};
 uint8_t spi_slave_tx_buf[BUFFER_SIZE];
-uint8_t spi_slave_rx_buf[2];
+uint8_t spi_slave_rx_buf[11];
 
 // Replace with your network credentials
-const char* ssid = "SlicesFibre2.4GHz";
-const char* password = "pg10gvi1bs";
+const char* ssid = "Upstairs";
+const char* password = "123456789";
 
 //Server we are sending the data to and connection timeout in ms
 const char *ip = "13.41.53.180";
@@ -26,8 +26,14 @@ const long  gmtOffset_sec = 0;
 const int   daylightOffset_sec = 0;
 char currentTime[26] = {'\0'};
 
-//Total Variables
-long int total_steps;
+float bintofloat(unsigned int x) {
+    union {
+        unsigned int  x;
+        float  f;
+    } temp;
+    temp.x = x;
+    return temp.f;
+}
 
 //Initalise the Wifi Connection (can be re-ran for re-connection)
 void initWiFi() {
@@ -96,12 +102,10 @@ void setup() {
   slave.setDataMode(SPI_MODE0);
   slave.begin(HSPI);
 
-  total_steps = 0;
-
   WifiServer.begin();
 
   slave.setQueueSize(64);
-  sendRequest("Cozzy");
+  // sendRequest("Cozzy");
 }
 
 
@@ -139,21 +143,28 @@ void sendRequest(const char* Message) {
     Serial.print("[TCP_Tx] | ");
     Serial.println(Message);
 
+    // while (!client.available());                // wait for response
     // read entire response untill hit newline char
     Serial.print("[TCP_Rx] | ");
 
-    while (!client.available());                // wait for response
+    char val;
+    // val = client.readStringUntil('\n');
+    val = client.read();
 
-    String val;
-    val = client.readStringUntil('\n');
-    Serial.println(val);
+    if(val != 255){
 
-    Serial.println("--------------[SPI_Tx COMM]-----------");
+      Serial.println(val);
+      Serial.println("--------------[SPI_Tx COMM]-----------");
 
-    //print the full Spi Tx Buffer
-    Serial.print("[SPI_Tx]  | ");
-    Serial.println(val);
-    spi_slave_tx_buf[BUFFER_SIZE - 1] = val.toInt();
+      //print the full Spi Tx Buffer
+      Serial.print("[SPI_Tx]  | ");
+      Serial.println(val);
+      spi_slave_tx_buf[BUFFER_SIZE - 1] = val%48;
+    }else{
+
+      Serial.println("No Server Response");
+    }
+
   }
 
   // client.stop();
@@ -181,14 +192,20 @@ void loop() {
         }
         printf("\n");
 
+        int step_count = (spi_slave_rx_buf[0] << 8) | spi_slave_rx_buf[1];
+        uint pos_x = (spi_slave_rx_buf[2] << 24) | (spi_slave_rx_buf[3] << 16) | (spi_slave_rx_buf[4] << 8) | (spi_slave_rx_buf[5]);
+        uint pos_y = (spi_slave_rx_buf[6] << 24) | (spi_slave_rx_buf[7] << 16) | (spi_slave_rx_buf[8] << 8) | (spi_slave_rx_buf[9]);
+        float fx = bintofloat(pos_x);
+        float fy = bintofloat(pos_y);
+        int heading = spi_slave_rx_buf[10];
 
         //update the current time
         if(printLocalTime()){
           //buffer for the Json Data
-          char PostData[128];
+          char PostData[256];
 
           //Format the Json Data
-          sprintf(PostData, "{\"timestamp\":\"%s\", \"device_id\":\"Cozzy\", \"total_steps\":%d, \"heading\":%d}", currentTime, spi_slave_rx_buf[0], spi_slave_rx_buf[1]);
+          sprintf(PostData, "{\"timestamp\":\"%s\", \"device_id\":\"Frappe\", \"total_steps\":%d, \"heading\":%d, \"pos_x\":%f, \"pos_y\":%f}", currentTime, step_count, heading, fx, fy);
           Serial.print("[SPI->MSG] | ");
           Serial.println(PostData);
 

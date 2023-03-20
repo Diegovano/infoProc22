@@ -29,6 +29,9 @@
 #define DEBUG_UART true
 #define UART false
 
+#define RECV_BUFFER_SIZE 1
+#define SEND_BUFFER_SIZE 11
+
 alt_8 pwm = 0;
 alt_u8 led;
 alt_u32 timer = 0;
@@ -37,8 +40,8 @@ int pulse;
 int Lightshift;
 float heading_roll;
 
-alt_u8 recv[3] = {0};
-alt_u8 send[2] = {0};
+alt_u8 recv[RECV_BUFFER_SIZE + SEND_BUFFER_SIZE] = {0};
+alt_u8 send[SEND_BUFFER_SIZE] = {0};
 
 int stepcount = 0;
 alt_u32 last_step_at = 0;
@@ -209,15 +212,15 @@ void compass_direction(float *samples_x,float* samples_y,int count){
   float yh = x_read_mag * sinRoll * sinPitch + y_read_mag * cosRoll - z_read_mag * sinRoll * cosPitch;
   // float sample = atan2(yh, xh);
   // char buffer[5]; 
-  // itoa((int)( sample*57.3 +180), buffer, 10);
+  // itoa((int)( sample*57.3 +180.0), buffer, 10);
   // hex_write_left("   ");
   // hex_write_left(buffer);
   samples_y[count % TAPS_MAG] = yh; //heading roll
   samples_x[count % TAPS_MAG] = xh;
   //float heading = 57.3 * atan2((double)x_read_mag,(double)y_read_mag);
-  //printf("x:%d y:%d z:%d p:%d r:%d heading:%d\n",x_read_mag,y_read_mag,z_read_mag, (int)(57.3 * roll),(int)(57.3 * pitch),(int) heading_roll + 180);  //just for testing
+  //printf("x:%d y:%d z:%d p:%d r:%d heading:%d\n",x_read_mag,y_read_mag,z_read_mag, (int)(57.3 * roll),(int)(57.3 * pitch),(int) heading_roll + 180.0);  //just for testing
   //printf("A: %d x, %d y, %d z\n", (int)(x.acc), (int)(y.acc), (int)(z.acc)); 
-  //hex_write_left(itoa((int)heading_roll + 180,str,10));
+  //hex_write_left(itoa((int)heading_roll + 180.0,str,10));
 }
 
 // ====================================
@@ -250,6 +253,7 @@ void timeout_isr() {
   #else
 
   if (timer % MSEC_ESP_TX_TIMEOUT == 0) {
+    int send_heading = (int)(heading_roll*57.3 +180.0);
     unsigned int * ptr_x = &location.x;
     unsigned int * ptr_y = &location.y;
     send[0] = (alt_u8) (stepcount >> 8);
@@ -262,15 +266,16 @@ void timeout_isr() {
     send[7] = (alt_u8) (*ptr_y >> 16);
     send[8] = (alt_u8) (*ptr_y >> 8);
     send[9] = (alt_u8) (*ptr_y);
-    send[10] = (alt_u8) (heading_roll*57.3 +180);
-
-    int RECV_BUFFER_SIZE = 1;
-    int SEND_BUFFER_SIZE = 11;
+    send[10] = (alt_u8) send_heading;
+    //printf("%d | ",(int)(57.3*heading_roll+180.0));
 
     int length = alt_avalon_spi_command(SPI_BASE, 0, SEND_BUFFER_SIZE, send, SEND_BUFFER_SIZE + RECV_BUFFER_SIZE, recv, 0);
 
-    printf("%d | ", recv[0]);
-    printf("\n");
+    // if(recv[0] != 0){
+    //   printf("%d | ", recv[0]);
+    //   printf("\n");
+    // }
+
 
     // if(recv[0] != 0){
     //   char buffer[5]; 
@@ -445,11 +450,12 @@ int main()
 
     if (count % 100 == 0) {
       compass_heading(samples_mag_x,samples_mag_y);
-      char buffer[5]; 
-      itoa((int)(heading_roll*57.3 +180), buffer, 10);
-      hex_write_right("   ");
-      hex_write_right(buffer);
     }
+    char buffer[5]; 
+    int print = (int)(heading_roll*57.3 +180.0);
+    itoa(print, buffer, 10);
+    hex_write_right("   ");
+    hex_write_right(buffer);
 
     if(buttons&0b1){
       bias_mag();
