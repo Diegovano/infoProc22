@@ -1,0 +1,4 @@
+eclipse.preferences.version=1
+newSoftwareExampleWizardPage.defaultLocation=/home/omalley242/Documents/infoProc22/FPGA/software/anything
+newSoftwareExampleWizardPage.sopcinfoFile=/home/omalley242/Documents/infoProc22/FPGA/nios_accelerometer.sopcinfo
+newSoftwareExampleWizardPage2.newBspLocation=/home/omalley242/Documents/infoProc22/FPGA/software/anything_bsp

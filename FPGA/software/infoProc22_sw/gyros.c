@@ -35,6 +35,9 @@ int pulse;
 int Lightshift;
 int heading_roll;
 
+alt_u8 recv[3] = {0};
+alt_u8 send[2] = {0};
+
 int stepcount = 0;
 alt_u32 last_step_at = 0;
 
@@ -223,11 +226,23 @@ void timeout_isr() {
   #else
 
   if (timer % MSEC_ESP_TX_TIMEOUT == 0) {
-    alt_u8 send[2];
+
     send[0] = stepcount;
     send[1] = heading_roll;
-    alt_avalon_spi_command(SPI_BASE, 0, 2, send, 0, 0, 0);
-    //alt_avalon_spi_command(SPI_BASE, 0, 1, &stepcount, 0, 0, 0);
+
+    int RECV_BUFFER_SIZE = 1;
+    int SEND_BUFFER_SIZE = 2;
+
+    int length = alt_avalon_spi_command(SPI_BASE, 0, SEND_BUFFER_SIZE, send, SEND_BUFFER_SIZE + RECV_BUFFER_SIZE, recv, 0);
+
+    printf("%d | ", recv[0]);
+    printf("\n");
+
+    if(recv[0] != 0){
+      char buffer[5]; 
+      itoa(recv[0], buffer, 10);
+      hex_write_left(buffer);
+    }
   }
 
   if (timer % MSEC_UART_TX_TIMEOUT == 0) {
@@ -235,9 +250,9 @@ void timeout_isr() {
       last_step_at = timer;
       char buffer[5]; 
       itoa(++stepcount, buffer, 10);
-      hex_write_left("   ");
+      // hex_write_left("   ");
       //hex_write_right(buffer);
-      hex_write_left(buffer);
+      // hex_write_left(buffer);
     }
     // order must be MSB, LSB
     alt_8 header = 0b11000010; // first two bits header, third unsigned, rest represent number of segments per reconstructed type. Here we are reconstructing one variable, with 14 bits transmitted for each.
@@ -389,8 +404,8 @@ int main()
       compass_direction();
       char buffer[5]; 
       itoa(heading_roll+180, buffer, 10);
-      hex_write_right("   ");
-      hex_write_right(buffer);
+      // hex_write_right("   ");
+      // hex_write_right(buffer);
     }
 
     if(buttons&0b1){

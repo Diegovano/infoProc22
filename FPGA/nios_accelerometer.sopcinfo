@@ -5,11 +5,11 @@
  version="1.0"
  fabric="QSYS">
  <!-- Format version 20.1 720 (Future versions may contain additional information.) -->
- <!-- 2023.03.19.21:01:23 -->
+ <!-- 2023.03.20.15:18:36 -->
  <!-- A collection of modules and connections -->
  <parameter name="AUTO_GENERATION_ID">
   <type>java.lang.Integer</type>
-  <value>1679259683</value>
+  <value>1679325516</value>
   <derived>false</derived>
   <enabled>true</enabled>
   <visible>false</visible>
@@ -14336,7 +14336,7 @@ the requested settings for a module instance. -->
   </assignment>
   <assignment>
    <name>embeddedsw.CMacro.TARGETSSDELAY</name>
-   <value>"10000.0"</value>
+   <value>"0.0"</value>
   </assignment>
   <assignment>
    <name>embeddedsw.dts.compatible</name>
@@ -14444,7 +14444,7 @@ the requested settings for a module instance. -->
   </parameter>
   <parameter name="targetSlaveSelectToSClkDelay">
    <type>double</type>
-   <value>10000.0</value>
+   <value>0.0</value>
    <derived>false</derived>
    <enabled>false</enabled>
    <visible>true</visible>
@@ -15904,7 +15904,7 @@ the requested settings for a module instance. -->
   </assignment>
   <assignment>
    <name>embeddedsw.CMacro.TIMESTAMP</name>
-   <value>1679259683</value>
+   <value>1679325516</value>
   </assignment>
   <assignment>
    <name>embeddedsw.dts.compatible</name>
@@ -15924,7 +15924,7 @@ the requested settings for a module instance. -->
   </assignment>
   <assignment>
    <name>embeddedsw.dts.params.timestamp</name>
-   <value>1679259683</value>
+   <value>1679325516</value>
   </assignment>
   <assignment>
    <name>embeddedsw.dts.vendor</name>
@@ -15940,7 +15940,7 @@ the requested settings for a module instance. -->
   </parameter>
   <parameter name="timestamp">
    <type>int</type>
-   <value>1679259683</value>
+   <value>1679325516</value>
    <derived>true</derived>
    <enabled>false</enabled>
    <visible>false</visible>
