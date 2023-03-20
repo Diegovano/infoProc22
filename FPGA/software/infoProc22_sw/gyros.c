@@ -426,7 +426,7 @@ int main()
   char str[32];
   GY_271_init(MAGNETOMETER_BASE,50000000,100000);
   GY_271_Reset(); 
-  GY_271_setMode(1,0,2,1,1,1); 
+  GY_271_setMode(1,0,2,1,1,1);
   //bias(&x_bias, &y_bias, &z_bias, x_samples, y_samples, z_samples, quant_coefficients, acc_dev);
   alt_u32 grav_bias = bias(x_samples, y_samples, z_samples, quant_coefficients, acc_dev);
   bias_mag();
