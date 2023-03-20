@@ -250,12 +250,22 @@ void timeout_isr() {
   #else
 
   if (timer % MSEC_ESP_TX_TIMEOUT == 0) {
-
-    send[0] = stepcount;
-    send[1] = heading_roll;
+    unsigned int * ptr_x = &location.x;
+    unsigned int * ptr_y = &location.y;
+    send[0] = (alt_u8) (stepcount >> 8);
+    send[1] = (alt_u8) (stepcount);
+    send[2] = (alt_u8) (*ptr_x >> 24);
+    send[3] = (alt_u8) (*ptr_x >> 16);
+    send[4] = (alt_u8) (*ptr_x >> 8);
+    send[5] = (alt_u8) (*ptr_x);
+    send[6] = (alt_u8) (*ptr_y >> 24);
+    send[7] = (alt_u8) (*ptr_y >> 16);
+    send[8] = (alt_u8) (*ptr_y >> 8);
+    send[9] = (alt_u8) (*ptr_y);
+    send[10] = (alt_u8) (heading_roll*57.3 +180);
 
     int RECV_BUFFER_SIZE = 1;
-    int SEND_BUFFER_SIZE = 2;
+    int SEND_BUFFER_SIZE = 11;
 
     int length = alt_avalon_spi_command(SPI_BASE, 0, SEND_BUFFER_SIZE, send, SEND_BUFFER_SIZE + RECV_BUFFER_SIZE, recv, 0);
 
