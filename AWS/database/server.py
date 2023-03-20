@@ -55,6 +55,43 @@ def create_table(table_name, dynamodb = None):
         print(f"Table '{table_name}' created successfully")
 
         return table
+    
+def create_table_basic(table_name, dynamodb = None):
+    if not dynamodb:
+        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+    
+    # Check if table already exists
+    table_exists = False
+    for table in dynamodb.tables.all():
+        if table.name == table_name:
+            print(f"Table '{table_name}' already exists")
+            return table
+    # If table does not exist, create it
+    if not table_exists:
+        table = dynamodb.create_table(
+            TableName=table_name,
+            KeySchema=[
+                {
+                     'AttributeName': 'device_id',
+                     'KeyType': 'HASH'  #Partition key
+                }
+            ],
+            AttributeDefinitions=[
+                 {
+                     'AttributeName': 'device_id',
+                     'AttributeType': 'S'
+                 }
+            ],
+            ProvisionedThroughput={
+                'ReadCapacityUnits': 5,
+                'WriteCapacityUnits': 5
+            }
+        )
+
+        table.meta.client.get_waiter('table_exists').wait(TableName=table_name)
+        print(f"Table '{table_name}' created successfully")
+
+        return table
 
 def add_item(table_name, input_json, dynamodb=None):
     """ input json should be in the format of
@@ -86,6 +123,37 @@ def add_item(table_name, input_json, dynamodb=None):
         'device_id' : input_dict['device_id'], #ζηε δθαν δαι μα ται ψηθν
         'total_steps' :decimal.Decimal(str(input_dict['total_steps'])),
         'heading' : decimal.Decimal(str(input_dict['heading'])),
+
+        }
+
+    # Add the item to the table
+    response = table.put_item(Item=item)
+    return response
+
+def add_item_basic(table_name, input_json, dynamodb=None):
+    """ input json should be in the format of
+    {
+        "device_id" : <string>
+    }
+    """
+    if not dynamodb:
+        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+    table = dynamodb.Table(table_name)
+
+    try:
+        input_dict = json.loads(input_json)
+             
+    except json.JSONDecodeError:  
+        return f"Error: invalid input JSON format"
+     
+    # Check that required keys are present in the input dictionary
+    required_keys = ['device_id']
+    if not all(key in input_dict for key in required_keys):
+        return f"Error: missing one or more required keys: {required_keys}"
+
+    # Construct the item to be added to the table
+    item = {
+        'device_id' : input_dict['device_id'], #ζηε δθαν δαι μα ται ψηθν
         }
 
     # Add the item to the table
@@ -95,6 +163,7 @@ def add_item(table_name, input_json, dynamodb=None):
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 table_name = 'di_data10'
 table = create_table(table_name, dynamodb)
+DeviceIDs = create_table_basic('Patrick_saidDeviceIds', dynamodb)
 def last_total_steps(device_id):
     dynamodb = boto3.client('dynamodb', region_name='us-east-1')
     # device_id to query (so far either 1 or 2) 
@@ -173,6 +242,7 @@ while True:
     #notice recv and send instead of recvto and sendto
     Client, address = welcome_socket.accept()
     nickname = Client.recv(1024).decode()
+    add_item_basic('Patrick_saidDeviceIds',"{\"device_id\":\""+nickname+"}\"}",dynamodb)
     nicknames[nickname] = 0
     connections.append(Client)
     print("Device ID: " + nickname)
