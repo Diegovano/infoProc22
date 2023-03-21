@@ -5,6 +5,7 @@ from pprint import pprint
 from datetime import datetime
 import decimal 
 import threading
+import select
 
 # for a given device, get 5 consecutive samples and make them to a numpy arraay,
 #  where the first column is the timestamp, the second column is the total steps, 
@@ -112,25 +113,25 @@ def add_item(table_name, input_json, dynamodb=None):
     except json.JSONDecodeError:  
         return f"Error: invalid input JSON format"
      
-    # Check that required keys are present in the input dictionary
     required_keys = ['timestamp', 'device_id','total_steps', 'heading']
     if not all(key in input_dict for key in required_keys):
         return f"Error: missing one or more required keys: {required_keys}"
 
-    # Construct the item to be added to the table
     item = {
         'timestamp': input_dict['timestamp'], # Εβριθινγ ισ ουκινγ
         'device_id' : input_dict['device_id'], #ζηε δθαν δαι μα ται ψηθν
         'total_steps' :decimal.Decimal(str(input_dict['total_steps'])),
         'heading' : decimal.Decimal(str(input_dict['heading'])),
-
+        'pos_x': decimal.Decimal(str(input_dict['pos_x'])),
+        'pos_y': decimal.Decimal(str(input_dict['pos_y'])),
+        'xcordinate': 0,
+        'ycordinate': 0, 
         }
 
-    # Add the item to the table
     response = table.put_item(Item=item)
     return response
 
-def add_item_basic(table_name, input_json, dynamodb=None):
+def add_item_basic(table_name, input_dict, dynamodb=None):
     """ input json should be in the format of
     {
         "device_id" : <string>
@@ -139,12 +140,6 @@ def add_item_basic(table_name, input_json, dynamodb=None):
     if not dynamodb:
         dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
     table = dynamodb.Table(table_name)
-
-    try:
-        input_dict = json.loads(input_json)
-             
-    except json.JSONDecodeError:  
-        return f"Error: invalid input JSON format"
      
     # Check that required keys are present in the input dictionary
     required_keys = ['device_id']
@@ -163,7 +158,7 @@ def add_item_basic(table_name, input_json, dynamodb=None):
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 table_name = 'di_data10'
 table = create_table(table_name, dynamodb)
-DeviceIDs = create_table_basic('Patrick_saidDeviceIds', dynamodb)
+DeviceIDs = create_table_basic('DeviceIds', dynamodb)
 def last_total_steps(device_id):
     dynamodb = boto3.client('dynamodb', region_name='us-east-1')
     # device_id to query (so far either 1 or 2) 
@@ -181,9 +176,13 @@ def last_total_steps(device_id):
 
     if len(response['Items']) > 0:
         last_total_steps = int(response['Items'][0]['total_steps']['N'])
+        
         print(last_total_steps)
+    
+        return last_total_steps
     else:
         print("No data found for the specified device id.")
+        return 0
 
 #select a server port
 server_port = 12000
@@ -199,56 +198,83 @@ def leave(connection,nickname):
     connections.remove(connection)
     connection.close()
     broadcast(nickname + " left!")
-    nicknames.remove(nickname)
+    del nicknames[nickname]
+
 
 def broadcast(message):
     for conection in connections:
         conection.send(message.encode())
 
-def threaded_client(connections,nickname):
+def threaded_client(connections):
+    nickname = ""
+    buff = b""
     while True:
-                cmsg = connections.recv(128)
-                if not cmsg:
-                    break
-                messages = cmsg.split(b"\n")
-                for message in messages:
-                    message = message.strip()
-                    if message:
-                        print("Decoding",message)
-                        try:
-                            decoded_data = json.loads(message.decode())
-                            print(decoded_data)
-                            add_item(table_name, json.dumps(decoded_data), dynamodb)
-                            nicknames[nickname] = last_total_steps(nickname)
-                            nick_list = list(nicknames.items())  # = [[key, value], [key, value]]
-                            nick_list.sort(key=lambda pair: pair[1])
-                            index = -1
-                            for  i in range(len(nick_list)):
-                                nick_pair = nick_list[i]
-                                if nick_pair[0] == nickname:
-                                     index = i
-                            if index == -1:
-                                 response_msg="69".encode()
-                                 print("shit balls")
-                            else:
-                                response_msg = str(index+1).encode()
-                            connections.send(response_msg)
-                            #print(response)
-                        except json.decoder.JSONDecodeError:
-                                print("Failed to decode!")
+        try:
+            cmsg = connections.recv(256)
+            #if not cmsg:
+            #    break
+            buff += cmsg
+            if b'\n' in buff:
+                
+                message = buff.split(b"\n", 1)[0]
+                buff = buff.split(b'\n', 1)[1]
+            
+                message = message.strip()
+                if message:
+                    print("Decoding",message)
+                    try:
+                        decoded_data = json.loads(message.decode())
+                        print(decoded_data)
+                        add_item(table_name, json.dumps(decoded_data), dynamodb)
+                        nickname = decoded_data["device_id"]
+                        if nicknames.get(nickname, None) is None:
+                            print("Adding nickname to db "+nickname)
+                            add_item_basic('DeviceIds',{"device_id":nickname},dynamodb)
+                        nicknames[nickname] = last_total_steps(nickname)
+                        
+                        nick_list = list(nicknames.items())  # = [[key, value], [key, value]]
+                        print(nick_list)
+                        nick_list.sort(key=lambda pair: pair[1])
+                        index = -1
+                        for  i in range(len(nick_list)):
+                            nick_pair = nick_list[i]
+                            if nick_pair[0] == nickname:
+                                    index = i
+                        if index == -1:
+                                response_msg="69".encode()
+                                print("shit balls")
+                        else:
+                            response_msg = str(index+1).encode()
+                        connections.send(response_msg)
+                        #print(response)
+                    except json.decoder.JSONDecodeError:
+                            print("Failed to decode!")
+        except socket.timeout:
+            leave(connections,nickname)
+                                 
 
 #Now the main server loop
-while True:
-    #notice recv and send instead of recvto and sendto
-    Client, address = welcome_socket.accept()
-    nickname = Client.recv(1024).decode()
-    add_item_basic('Patrick_saidDeviceIds',"{\"device_id\":\""+nickname+"}\"}",dynamodb)
-    nicknames[nickname] = 0
-    connections.append(Client)
-    print("Device ID: " + nickname)
-    Client.send('c'.encode())
-    thread = threading.Thread(target=threaded_client,args=(Client, nickname,))
-    thread.start()
+try:
+        while True:
+            #notice recv and send instead of recvto and sendto
+            Client, address = welcome_socket.accept()
+            #first_send = json.load(Client.recv(1024).decode())
+            #nickname = first_send['device_id']
+            #add_item_basic('DeviceIds',{"device_id":nickname},dynamodb)
+            #nicknames[nickname] = 0
+            connections.append(Client)
+            #print("Device ID: " + nickname)
+            Client.send('c'.encode())
+            thread = threading.Thread(target=threaded_client,args=(Client,))
+            thread.start()
+except KeyboardInterrupt:
+    welcome_socket.close()
+    for connection in connections:
+       connection.close()
+    print("bye <3")
+
+
+
 
 
 #  sockets = [welcome_socket]  # list of sockets to monitor

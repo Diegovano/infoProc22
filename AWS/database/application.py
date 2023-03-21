@@ -17,11 +17,14 @@ def get_info():
         ExpressionAttributeValues={
             ':id_val': args["device_id"],
         },
-        ProjectionExpression='Heading, #cs, #ds, #sm',
+        ProjectionExpression='Heading, #cs, #ds, #sm, #ks, #ms',
         ExpressionAttributeNames={
             '#cs': 'total_steps',
             '#sm' : 'heading',
             '#ds': 'timestamp',
+            '#ks': 'pos_x',
+            '#ms': 'pos_y',
+
         },
     )
     items = response['Items']
@@ -30,7 +33,16 @@ def get_info():
     return http_resp
 # //http://ip:port/get_info?device_id=1
 
+    
+@app.route('/get_deviceid', methods=['GET'])
+def get_deviceid():
+    table = dynamodb.Table('DeviceIds')
+    response = table.scan()
+    data = response['Items']
+    http_response = make_response(jsonify({'data' : data}), 200)
+    http_response.headers.add('Access-Control-Allow-Origin', '*')
+    return http_response
+
+
 if __name__ == '__main__':
     app.run(debug = True, host = "0.0.0.0", port= 8080)
-    
-# timestamp, total steps and device id, heading 

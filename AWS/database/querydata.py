@@ -1,4 +1,5 @@
 import boto3
+import json
 import numpy as np
 import numpy as np
 import torch
@@ -8,7 +9,8 @@ from torch.utils.data import DataLoader
 from torch.utils.data import random_split
 from torch.utils.data import TensorDataset
 from tqdm import tqdm
-
+from pprint import pprint
+from decimal import Decimal 
 
 DEVICE = 'cuda'
 BATCH_SIZE = 1024
@@ -133,53 +135,128 @@ class Model(nn.Module):
 		return (losses, test_losses)
 	
 
-dynamodb = boto3.client('dynamodb', region_name='us-east-1')
+def update_points(device_ide,timestamp, dynamodb=None):
+	table_name = 'di_data10'
+	if not dynamodb:
+		dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+	table = dynamodb.Table(table_name)
+	response = table.update_item(
+		Key={
+			'device_id': device_ide,
+			'timestamp' : timestamp
+		},
+		UpdateExpression="set xcordinate=:r, ycordinate=:p",
+		ExpressionAttributeValues={
+			':r': str(concept_logits[0,0].item()),
+			':p': str(concept_logits[0,1].item())
+		},
+		ReturnValues="UPDATED_NEW"
+	)
+	
+	return response
 
 # device_id to query (so far either 1 or 2) 
-device_id = 'Cozzy'
+dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+table_name = 'DeviceIds'
+table = dynamodb.Table(table_name)
+response = table.scan()
 
-# set up the query parameters
-query_params = {
-	'TableName': 'di_data10',
-	'KeyConditionExpression': 'device_id = :device_id',
-	'ExpressionAttributeValues': {
+device_ids = []
+for device in response['Items']:
+	device_ids.append(device["device_id"])
+
+print(device_ids)
+print (device_ids[0])
+j = 0
+while True:
+		device_id = device_ids[j]
+		if(j == len(device_ids)-1):
+			j =0
+		# set up the query parameters
+		dynamodb = boto3.client('dynamodb', region_name='us-east-1')
+		query_params = {
+		'TableName': 'di_data10',
+		'KeyConditionExpression': 'device_id = :device_id',
+		'ExpressionAttributeValues': {
 		':device_id': {'S': device_id},
 	},
 }
+		data = []
+	#can add timestamp as well, prob not needed 
+		response = dynamodb.query(**query_params)
+		prev = 0
+		the_model = torch.load("models/model1000epoch10000data_true_decent_3.pth")
+		for item in response['Items']:
+			print("123123123")
+			heading = int(item['heading']['N'])
+			total_steps = int(item['total_steps']['N'])
+			timestamp = item['timestamp']
+			data.append([total_steps, heading])
+			if len(data) == 5:
+				print("wesrtwertwertqewsrtewrt")
+				data_array = np.array(data)
+				print(data_array)
+				feedin = []
+				for i in range(5):
+					d_Step = data_array[i][0]-prev
+					prev = data_array[i][0]
+					feedin.append(d_Step)
+					feedin.append(data_array[i][1])
+				feedin = np.array(feedin)
+				print(feedin)
+				feedin = np.expand_dims(feedin,axis=0).astype(float)
+				dataa2 = {}
+				for i in range(5):
+					print("############")
+					print(2*i+1)
+					print(feedin[:,2*i+1])
+					print(np.deg2rad(feedin[:,2*i+1])/(2*np.pi))
+					feedin[:,2*i+1] = np.deg2rad(feedin[:,2*i+1])/(2*np.pi)
+				print(feedin)
+				print(feedin[:,1])
+				dataa2['features'] = feedin
+				dataa2['labels'] = np.expand_dims(np.array([0,0]),axis=0)
+				dataset = toydataset(dataa2)
+				a_to_x_test_loader = DataLoader(TensorDataset(torch.tensor([[o[0]] for o in dataset]), torch.tensor([[o[1]] for o in dataset], dtype=torch.float32)), batch_size=BATCH_SIZE, shuffle=False, num_workers=N_WORKERS)
+				concept_logits = the_model.predict(a_to_x_test_loader)
+				print("FUCKIGN PREDICITION==============")
+				print(concept_logits)
+				print("=================================")
+				print(device_ids[j])
+				
+			# 	response = table.update_item(
+			# 	Key={
+			# 			'device_id': device_ids[j],
+			# 			'timestamp': timestamp,
+			# 			},
+			# 	UpdateExpression='SET',
+			# 	ExpressionAttributeNames={'x-cordinate': str((concept_logits[0,0].item()))},
+			# 	ExpressionAttributeValues={'y-cordinate': str(concept_logits[0,1].item())}
+			# )	
+				print(timestamp['S'])
+				update_response = update_points(device_id[j],timestamp['S'])
+				print("Update movie succeeded:")
+				pprint(update_response)
+				print(concept_logits)
+				prev = data_array[4][0]
+				data.clear()
+		j += 1
 
-data = []
-#can add timestamp as well, prob not needed 
-response = dynamodb.query(**query_params)
-prev = 0
-the_model = torch.load("models/model1000epoch10000data.pth")
-for item in response['Items']:
-	heading = int(item['heading']['N'])
-	total_steps = int(item['total_steps']['N'])
-	data.append([total_steps, heading])
-	if len(data) == 5:
-		data_array = np.array(data)
-		print(data_array)
-		feedin = []
-		for i in range(5):
-			d_Step = data_array[i][0]-prev
-			prev = data_array[i][0]
-			feedin.append(d_Step)
-			feedin.append(data_array[i][1])
-		feedin = np.array(feedin)
-		print(feedin)
-		dataa2 = {}
-		dataa2['features'] = np.expand_dims(feedin,axis=0)
-		dataa2['labels'] = np.expand_dims(np.array([0,0]),axis=0)
-		dataset = toydataset(dataa2)
-		a_to_x_test_loader = DataLoader(TensorDataset(torch.tensor([[o[0]] for o in dataset]), torch.tensor([[o[1]] for o in dataset], dtype=torch.float32)), batch_size=BATCH_SIZE, shuffle=False, num_workers=N_WORKERS)
-		concept_logits = the_model.predict(a_to_x_test_loader)
-		print(concept_logits)
-
-		prev = data_array[4][0]
-		data.clear()
-
-if len(data) > 0:
-	data_array = np.array(data)
-	print(data_array)
-	
-		
+		if len(data) > 0:
+			print("Chang you dumbass")
+			data_array = np.array(data)
+			print(data_array)
+			
+	# response = table.update_item(
+	# 			Key={
+	# 				'device_id': device_id[j],
+	# 				'timestamp': timestamp,
+	# 			},
+	# 			UpdateExpression="set x-cordinate=:r, y-cordinate=:p",
+	# 			ExpressionAttributeValues={
+	# 				':r': str(concept_logits[0,0].item()),
+	# 				':p': str(concept_logits[0,1].item()),
+	# 			},
+	# 			ReturnValues="UPDATED_NEW"
+	# corey rico corey rico corey rico corey rico corey rico corey rico corey rico corey rico corey rico corey rico corey rico
+	#If a person named Corey has explicitly expressed that they would like to be called Rico or have given you permission to call them Rico, then it would be appropriate to do so. However, if you are unsure whether they are comfortable with this nickname or have not been given permission to call them Rico, it's best to use their given name or ask if they have a preferred nickname. It's important to respect people's wishes when it comes to how they would like to be addressed.
