@@ -89,8 +89,10 @@ ACDS_VERSION := 20.1
 ELF := infoProc22_sw.elf
 
 # Paths to C, C++, and assembly source files.
-C_SRCS := gyros.c
-CXX_SRCS :=
+C_SRCS += gyros.c
+C_SRCS += .metadata/.plugins/org.eclipse.cdt.make.core/specs.c
+C_SRCS += .metadata/.plugins/org.eclipse.cdt.managedbuilder.core/spec.c
+CXX_SRCS := .metadata/.plugins/org.eclipse.cdt.make.core/specs.cpp
 ASM_SRCS :=
 
 

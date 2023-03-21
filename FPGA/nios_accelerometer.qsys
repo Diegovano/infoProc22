@@ -772,7 +772,7 @@
   <parameter name="enPRInitMode" value="false" />
   <parameter name="enableDiffWidth" value="false" />
   <parameter name="initMemContent" value="true" />
-  <parameter name="initializationFileName">C:/Users/diego/OneDrive/Documents/Work/~Year_2/Information_Processing/infoProc22/FPGA/software/infoProc22_sw/mem_init/nios_accelerometer_onchip_memory.hex</parameter>
+  <parameter name="initializationFileName">C:/E2_CAS/infoProc22/FPGA/software/infoProc22_sw/mem_init/nios_accelerometer_onchip_memory.hex</parameter>
   <parameter name="instanceID" value="NONE" />
   <parameter name="memorySize" value="65536" />
   <parameter name="readDuringWriteMode" value="DONT_CARE" />

@@ -29,6 +29,7 @@
 #define DEBUG_UART true
 #define UART false
 
+
 #define RECV_BUFFER_SIZE 1
 #define SEND_BUFFER_SIZE 11
 
@@ -211,14 +212,17 @@ void compass_direction(float *samples_x,float* samples_y,int count){
   float sinPitch = sin(pitch);
   float xh = x_read_mag * cosPitch + z_read_mag * sinPitch;
   float yh = x_read_mag * sinRoll * sinPitch + y_read_mag * cosRoll - z_read_mag * sinRoll * cosPitch;
+  #if Filter
+    samples_y[count % TAPS_MAG] = yh; //heading roll
+    samples_x[count % TAPS_MAG] = xh;
+  #else
+    heading_roll = atan2(yh,xh);
+  #endif
   // float sample = atan2(yh, xh);
   // char buffer[5]; 
   // itoa((int)( sample*57.3 +180.0), buffer, 10);
   // hex_write_left("   ");
   // hex_write_left(buffer);
-  samples_y[count % TAPS_MAG] = yh; //heading roll
-  samples_x[count % TAPS_MAG] = xh;
-  //float heading = 57.3 * atan2((double)x_read_mag,(double)y_read_mag);
   //printf("x:%d y:%d z:%d p:%d r:%d heading:%d\n",x_read_mag,y_read_mag,z_read_mag, (int)(57.3 * roll),(int)(57.3 * pitch),(int) heading_roll + 180.0);  //just for testing
   //printf("A: %d x, %d y, %d z\n", (int)(x.acc), (int)(y.acc), (int)(z.acc)); 
   //hex_write_left(itoa((int)heading_roll + 180.0,str,10));
@@ -301,8 +305,8 @@ void timeout_isr() {
       char buffer[5]; 
       location.x += STRIDE_LENGTH*sin(heading_roll);
       location.y += STRIDE_LENGTH*cos(heading_roll);
-      esp_communicate();
       itoa(++stepcount, buffer, 10);
+      esp_communicate();
       hex_write_left("   ");
       hex_write_right(buffer);
       hex_write_left(buffer);
@@ -464,9 +468,12 @@ int main()
       count2++;
     }
 
+    #if Filter
     if (count % 100 == 0) {
       compass_heading(samples_mag_x,samples_mag_y);
     }
+    #endif
+
     char buffer[5]; 
     int print = (int)(heading_roll*57.3 +180.0);
     itoa(print, buffer, 10);
