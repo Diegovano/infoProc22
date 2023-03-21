@@ -22,14 +22,14 @@
 #define TAPS_MAG 20
 #define MSEC_SUM_TIMEOUT 5
 #define MSEC_UART_TX_TIMEOUT 5
-#define MSEC_ESP_TX_TIMEOUT 1000
+#define MSEC_ESP_TX_TIMEOUT 2000
 #define STRIDE_LENGTH 0.73
 
 #define INTEGRATE_ON_BOARD false
 #define DEBUG_UART true
 #define UART false
 
-#define RECV_BUFFER_SIZE 1
+#define RECV_BUFFER_SIZE 2
 #define SEND_BUFFER_SIZE 11
 
 alt_8 pwm = 0;
@@ -40,6 +40,7 @@ int pulse;
 int Lightshift;
 int leaderboardPos = 0;
 float heading_roll;
+char setMagnometer = 'Y';
 
 alt_u8 recv[RECV_BUFFER_SIZE + SEND_BUFFER_SIZE] = {0};
 alt_u8 send[SEND_BUFFER_SIZE] = {0};
@@ -253,7 +254,7 @@ void esp_communicate(){
     // printf("\n");
 
     leaderboardPos = recv[0];
-
+    setMagnometer = recv[1];
     // if(recv[0] != 0){
     //   char buffer[5]; 
     //   itoa(recv[0], buffer, 10);
@@ -301,8 +302,8 @@ void timeout_isr() {
       char buffer[5]; 
       location.x += STRIDE_LENGTH*sin(heading_roll);
       location.y += STRIDE_LENGTH*cos(heading_roll);
-      esp_communicate();
       itoa(++stepcount, buffer, 10);
+      esp_communicate();
       hex_write_left("   ");
       hex_write_right(buffer);
       hex_write_left(buffer);
