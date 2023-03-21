@@ -37,10 +37,10 @@ def upconvert_bytes(the_bytes, signed: bool):
 
 if __name__ == "__main__":
     jtag = intel_jtag_uart.intel_jtag_uart()
-
+    jtag.flush()
     data_batch = []
-    stepcount = []
-    magnetmet = []
+    xpos = []
+    ypos = []
     t = []
     tcur = 0
 
@@ -83,11 +83,11 @@ if __name__ == "__main__":
                         continue
                     for i in range(len(data)//point_length):
                         if i == 0:
-                            stepcount.append(upconvert_bytes(data[i:i+point_length], 0))
+                            xpos.append(-upconvert_bytes(data[i:i+point_length], 1) / 10)
                             # print("steps " + str(upconvert_bytes(data[i:i+point_length], 0)))
                             t.append(tcur)
                         elif i == 1:
-                            magnetmet.append(upconvert_bytes(data[i*point_length:(i+point_length)*point_length], 0))
+                            ypos.append(-upconvert_bytes(data[i*point_length:(i+point_length)*point_length], 1) / 10)
                             # print("magnet " + str(upconvert_bytes(data[i*point_length:(i+point_length)*point_length], 0)))
                         tdif = (datetime.now() - last_fpga_contact).microseconds / 1e3
                         while tdif == 0:
@@ -101,30 +101,33 @@ if __name__ == "__main__":
                     #     last_upload_time = datetime.now()
     except KeyboardInterrupt:
         fig, ax = plt.subplots()
-        # np.save('steps', np.array(stepcount))
-        # np.save('magnt', np.array(magnetmet))
+        # np.save('steps', np.array(xpos))
+        # np.save('magnt', np.array(ypos))
         # np.save('times', np.array(t))
 
-        stepcountNP = np.array(stepcount)
-        magnetmetNP = np.array(magnetmet)
-        tNP = np.array(t)
+        xposNP = np.array(xpos[10:])
+        yposNP = np.array(ypos[10:])
+        tNP = np.array(t[10:])
 
-        maxsize = max(stepcountNP.shape[0], magnetmetNP.shape[0], tNP.shape[0])
+        maxsize = max(xposNP.shape[0], yposNP.shape[0], tNP.shape[0])
 
-        if(stepcountNP.shape[0] != maxsize):
-            stepcountNP = np.append(stepcountNP, 0)
-        if(magnetmetNP.shape[0] != maxsize):
-            magnetmetNP = np.append(magnetmetNP, 0)
+        if(xposNP.shape[0] != maxsize):
+            xposNP = np.append(xposNP, 0)
+        if(yposNP.shape[0] != maxsize):
+            yposNP = np.append(yposNP, 0)
         if(tNP.shape[0] != maxsize):
             tNP = np.append(tNP, 0)
 
-        ax.plot(tNP, magnetmetNP)
-        ax.plot(tNP, stepcountNP)
+        # ax.plot(tNP, yposNP)
+        # ax.plot(tNP, xposNP)
+        ax.set_aspect('equal', adjustable='box')
+        ax.plot(xposNP[0], yposNP[1], "rx")
+        ax.plot(xposNP, yposNP)
         plt.show()
 
-        combined = np.c_[tNP, stepcountNP, magnetmetNP]
+        combined = np.c_[tNP, xposNP, yposNP]
 
-        np.save('changData_' + datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), combined)
+        np.save('cozzyData_' + datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), combined)
 
         # combined.tofile('data')
 

@@ -21,7 +21,7 @@
 #define TAPS 49
 #define TAPS_MAG 20
 #define MSEC_SUM_TIMEOUT 5
-#define MSEC_UART_TX_TIMEOUT 5
+#define MSEC_UART_TX_TIMEOUT 20
 #define MSEC_ESP_TX_TIMEOUT 200
 #define STRIDE_LENGTH 0.73
 
@@ -258,8 +258,8 @@ void timeout_isr() {
 
     int length = alt_avalon_spi_command(SPI_BASE, 0, SEND_BUFFER_SIZE, send, SEND_BUFFER_SIZE + RECV_BUFFER_SIZE, recv, 0);
 
-    printf("%d | ", recv[0]);
-    printf("\n");
+    // printf("%d | ", recv[0]);
+    // printf("\n");
 
     // if(recv[0] != 0){
     //   char buffer[5]; 
@@ -283,7 +283,7 @@ void timeout_isr() {
     // order must be MSB, LSB
     alt_8 header = 0b11000010; // first two bits header, third unsigned, rest represent number of segments per reconstructed type. Here we are reconstructing one variable, with 14 bits transmitted for each.
     // alt_8 payload[] = {(alt_8)((x.acc & 0x3F80) >> 7), (alt_8)(x.acc & 0x7F)/*, (alt_8)(y.acc & 0x7F), (alt_8)((y.acc & 0x3F80) >> 7), (alt_8)(z.acc & 0x7F), (alt_8)((z.acc & 0x3F80) >> 7)*/};
-    alt_8 payload[] = {(alt_u8)((stepcount & 0x3F80) >> 7), (alt_u8)(stepcount & 0x7F), (alt_u8)((heading_roll & 0x3F80) >> 7), (alt_u8)(heading_roll & 0x7F)};
+    alt_8 payload[] = {(alt_u8)(((alt_16)(location.x * 10) & 0x3F80) >> 7), (alt_u8)((alt_16)(location.x * 10) & 0x7F), (alt_u8)(((alt_16)(location.y * 10) & 0x3F80) >> 7), (alt_u8)((alt_16)(location.y * 10) & 0x7F)};
     alt_8 trailer = 0xFF; // trailer, indicate end of stream
 
     #if UART
