@@ -192,6 +192,12 @@ void loop() {
         }
         printf("\n");
 
+
+        int check_bit = 0;
+        for(int i=0; i<slave.size(); i++){
+          check_bit |= spi_slave_rx_buf[i]; 
+        }
+        
         int step_count = (spi_slave_rx_buf[0] << 8) | spi_slave_rx_buf[1];
         uint pos_x = (spi_slave_rx_buf[2] << 24) | (spi_slave_rx_buf[3] << 16) | (spi_slave_rx_buf[4] << 8) | (spi_slave_rx_buf[5]);
         uint pos_y = (spi_slave_rx_buf[6] << 24) | (spi_slave_rx_buf[7] << 16) | (spi_slave_rx_buf[8] << 8) | (spi_slave_rx_buf[9]);
@@ -200,12 +206,12 @@ void loop() {
         int heading = spi_slave_rx_buf[10];
 
         //update the current time
-        if(printLocalTime()){
+        if(printLocalTime() && slave.size() > 0 && check_bit != 180){
           //buffer for the Json Data
           char PostData[256];
 
           //Format the Json Data
-          sprintf(PostData, "{\"timestamp\":\"%s\", \"device_id\":\"Frappe\", \"total_steps\":%d, \"heading\":%d, \"pos_x\":%f, \"pos_y\":%f}", currentTime, step_count, heading, fx, fy);
+          sprintf(PostData, "{\"timestamp\":\"%s\", \"device_id\":\"Cozzy\", \"total_steps\":%d, \"heading\":%d, \"pos_x\":%f, \"pos_y\":%f}", currentTime, step_count, heading, fx, fy);
           Serial.print("[SPI->MSG] | ");
           Serial.println(PostData);
 
