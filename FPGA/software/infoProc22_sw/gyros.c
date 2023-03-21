@@ -22,15 +22,14 @@
 #define TAPS_MAG 20
 #define MSEC_SUM_TIMEOUT 5
 #define MSEC_UART_TX_TIMEOUT 5
-#define MSEC_ESP_TX_TIMEOUT 1000
+#define MSEC_ESP_TX_TIMEOUT 2000
 #define STRIDE_LENGTH 0.73
 
 #define INTEGRATE_ON_BOARD false
 #define DEBUG_UART true
 #define UART false
 
-
-#define RECV_BUFFER_SIZE 1
+#define RECV_BUFFER_SIZE 2
 #define SEND_BUFFER_SIZE 11
 
 alt_8 pwm = 0;
@@ -41,6 +40,8 @@ int pulse;
 int Lightshift;
 int leaderboardPos = 0;
 float heading_roll;
+int Filter_mag = 1;
+char setMagnometer = 'Y';
 
 alt_u8 recv[RECV_BUFFER_SIZE + SEND_BUFFER_SIZE] = {0};
 alt_u8 send[SEND_BUFFER_SIZE] = {0};
@@ -212,12 +213,13 @@ void compass_direction(float *samples_x,float* samples_y,int count){
   float sinPitch = sin(pitch);
   float xh = x_read_mag * cosPitch + z_read_mag * sinPitch;
   float yh = x_read_mag * sinRoll * sinPitch + y_read_mag * cosRoll - z_read_mag * sinRoll * cosPitch;
-  #if Filter
+  if (Filter_mag){
     samples_y[count % TAPS_MAG] = yh; //heading roll
     samples_x[count % TAPS_MAG] = xh;
-  #else
+  }
+  else{
     heading_roll = atan2(yh,xh);
-  #endif
+  }
   // float sample = atan2(yh, xh);
   // char buffer[5]; 
   // itoa((int)( sample*57.3 +180.0), buffer, 10);
@@ -257,7 +259,8 @@ void esp_communicate(){
     // printf("\n");
 
     leaderboardPos = recv[0];
-
+    setMagnometer = recv[1];
+    Filter_mag = (setMagnometer == 'Y');
     // if(recv[0] != 0){
     //   char buffer[5]; 
     //   itoa(recv[0], buffer, 10);
@@ -468,11 +471,11 @@ int main()
       count2++;
     }
 
-    #if Filter
-    if (count % 100 == 0) {
-      compass_heading(samples_mag_x,samples_mag_y);
+    if(Filter_mag){
+      if (count % 100 == 0) {
+        compass_heading(samples_mag_x,samples_mag_y);
+      }
     }
-    #endif
 
     char buffer[5]; 
     int print = (int)(heading_roll*57.3 +180.0);
