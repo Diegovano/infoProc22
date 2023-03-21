@@ -246,7 +246,7 @@ def threaded_client(connections):
                                 response_msg="69".encode()
                                 print("shit balls")
                         else:
-                            response_msg = str(index+1).encode()
+                            response_msg = (str(index+1)+"\n").encode()
                         connections.send(response_msg)
                         #print(response)
                     except json.decoder.JSONDecodeError:
@@ -266,7 +266,6 @@ try:
             #nicknames[nickname] = 0
             connections.append(Client)
             #print("Device ID: " + nickname)
-            Client.send('c'.encode())
             thread = threading.Thread(target=threaded_client,args=(Client,))
             thread.start()
 except KeyboardInterrupt:
