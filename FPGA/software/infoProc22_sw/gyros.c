@@ -271,10 +271,10 @@ void timeout_isr() {
 
     int length = alt_avalon_spi_command(SPI_BASE, 0, SEND_BUFFER_SIZE, send, SEND_BUFFER_SIZE + RECV_BUFFER_SIZE, recv, 0);
 
-    // if(recv[0] != 0){
-    //   printf("%d | ", recv[0]);
-    //   printf("\n");
-    // }
+    if(recv[0] != 0){
+      printf("%d | ", recv[0]);
+      printf("\n");
+    }
 
 
     // if(recv[0] != 0){
