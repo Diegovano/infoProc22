@@ -7,9 +7,9 @@ ESP32SPISlave slave;
 WiFiServer WifiServer(12000);
 WiFiClient client = WifiServer.available();
 
-static constexpr uint32_t BUFFER_SIZE {12};
+static constexpr uint32_t BUFFER_SIZE {13};
 uint8_t spi_slave_tx_buf[BUFFER_SIZE];
-uint8_t spi_slave_rx_buf[11];
+uint8_t spi_slave_rx_buf[12];
 
 // Replace with your network credentials
 const char* ssid = "Upstairs";
@@ -143,14 +143,16 @@ void sendRequest(const char* Message) {
     // Serial.print("[TCP_Tx] | ");
     // Serial.println(Message);
 
-    // while (!client.available());                // wait for response
+    while (!client.available());                // wait for response
     // // read entire response untill hit newline char
     // Serial.print("[TCP_Rx] | ");
 
-    char val;
+    char pos;
+    char magnometer;
     // val = client.readStringUntil('\n');
-    val = client.read();
-
+    pos = client.read();
+    magnometer = client.read();
+    
     if(val != 255){
 
       // Serial.println(val);
@@ -159,7 +161,8 @@ void sendRequest(const char* Message) {
       // //print the full Spi Tx Buffer
       // Serial.print("[SPI_Tx]  | ");
       // Serial.println(val);
-      spi_slave_tx_buf[BUFFER_SIZE - 1] = val%48;
+      spi_slave_tx_buf[BUFFER_SIZE - 2] = pos%48;
+      spi_slave_tx_buf[BUFFER-SIZE - 1] = magnometer;      
     }else{
 
       // Serial.println("No Server Response");
@@ -204,14 +207,13 @@ void loop() {
         float fx = bintofloat(pos_x);
         float fy = bintofloat(pos_y);
         int heading = spi_slave_rx_buf[10];
-
         //update the current time
         if(printLocalTime() && slave.size() > 0 && check_bit != 180){
           //buffer for the Json Data
           char PostData[256];
 
           // //Format the Json Data
-          sprintf(PostData, "{\"timestamp\":\"%s\", \"device_id\":\"TestDevice#2\", \"total_steps\":%d, \"heading\":%d, \"pos_x\":%f, \"pos_y\":%f}", currentTime, step_count, heading, fx, fy);
+          sprintf(PostData, "{\"timestamp\":\"%s\", \"device_id\":\"Corey\", \"total_steps\":%d, \"heading\":%d, \"pos_x\":%f, \"pos_y\":%f}", currentTime, step_count, heading, fx, fy);
           // Serial.print("[SPI->MSG] | ");
           // Serial.println(PostData);
 
