@@ -230,16 +230,18 @@ def threaded_client(connections):
                         if nicknames.get(nickname, None) is None:
                             print("Adding nickname to db "+nickname)
                             add_item_basic('DeviceIds',{"device_id":nickname},dynamodb)
+
+                        print(nicknames)
                         nicknames[nickname] = last_total_steps(nickname)
-                        
-                        nick_list = list(nicknames.items())  # = [[key, value], [key, value]]
+                        # = [[key, value], [key, value]]
+                        nick_list = sorted(nicknames.items(), key = lambda kv:(kv[1], kv[0]),reverse=True)
                         print(nick_list)
-                        nick_list.sort(key=lambda pair: pair[1])
                         index = -1
                         for  i in range(len(nick_list)):
                             nick_pair = nick_list[i]
                             if nick_pair[0] == nickname:
                                     index = i
+                        print(index)
                         if index == -1:
                                 response_msg="69".encode()
                                 print("shit balls")
