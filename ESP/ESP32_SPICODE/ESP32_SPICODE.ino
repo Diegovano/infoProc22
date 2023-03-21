@@ -38,32 +38,32 @@ float bintofloat(unsigned int x) {
 //Initalise the Wifi Connection (can be re-ran for re-connection)
 void initWiFi() {
 
-  Serial.println("[WiFi] | Checking the Current Connection");
+  // Serial.println("[WiFi] | Checking the Current Connection");
 
   if(WL_CONNECTED != WiFi.status()){
 
-    Serial.println("--------------[WIFI COMM]----------");
-    Serial.println("[WiFi] | Disconnected From Wifi");
+    // Serial.println("--------------[WIFI COMM]----------");
+    // Serial.println("[WiFi] | Disconnected From Wifi");
     WiFi.mode(WIFI_STA);
-    Serial.print("[WiFi] | SSID:");
-    Serial.print(ssid);
-    Serial.print(" PSWD:");
-    Serial.println(password);
+    // Serial.print("[WiFi] | SSID:");
+    // Serial.print(ssid);
+    // Serial.print(" PSWD:");
+    // Serial.println(password);
 
     WiFi.begin(ssid, password);
-    Serial.println("[WiFi] | Starting Connection");
+    // Serial.println("[WiFi] | Starting Connection");
     
     while (WiFi.status() != WL_CONNECTED) {
-      Serial.println("[WiFi] | Waiting for Connection");
+      // Serial.println("[WiFi] | Waiting for Connection");
       delay(5000);
     }
 
-    Serial.print("[WiFi] | Connected at: ");
-    Serial.println(WiFi.localIP());
+    // Serial.print("[WiFi] | Connected at: ");
+    // Serial.println(WiFi.localIP());
 
   }else {
 
-    Serial.println("[WiFi] | WiFi is Connected");
+    // Serial.println("[WiFi] | WiFi is Connected");
 
   }
   
@@ -80,8 +80,8 @@ bool printLocalTime(){
   }
 
   strftime(currentTime, 26, "%FT%TZ", &timeinfo);
-  Serial.print("[NTP] | ");
-  Serial.println(currentTime);
+  // Serial.print("[NTP] | ");
+  // Serial.println(currentTime);
   return true;
 
 
@@ -89,7 +89,7 @@ bool printLocalTime(){
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("====================[SETUP COMM]=================");
+  // Serial.println("====================[SETUP COMM]=================");
   //Connect to Wifi
   initWiFi();
 
@@ -110,7 +110,7 @@ void setup() {
 
 
 void sendRequest(const char* Message) {
-  Serial.println("--------------[TPC COMM]-----------");
+  // Serial.println("--------------[TPC COMM]-----------");
 
   initWiFi();
 
@@ -119,33 +119,33 @@ void sendRequest(const char* Message) {
 
       if(client.connect(ip,port,timeout)){
 
-        Serial.println("[TCP_IP]   | successful! server connected");
+        // Serial.println("[TCP_IP]   | successful! server connected");
         
         //Send the Data if connected
         client.println(Message); 
-        Serial.print("[TCP_Tx] | ");
-        Serial.println(Message);
+        // Serial.print("[TCP_Tx] | ");
+        // Serial.println(Message);
 
     } 
     else {
 
-      Serial.println("[TCP_IP]   | could not connect to server, timeout reached");
+      // Serial.println("[TCP_IP]   | could not connect to server, timeout reached");
     
     }
 
   }
 
   else{
-    Serial.println("[TCP_IP]  | Open Connection Maintained");
+    // Serial.println("[TCP_IP]  | Open Connection Maintained");
 
     //Send the Data if connected
     client.println(Message); 
-    Serial.print("[TCP_Tx] | ");
-    Serial.println(Message);
+    // Serial.print("[TCP_Tx] | ");
+    // Serial.println(Message);
 
     // while (!client.available());                // wait for response
-    // read entire response untill hit newline char
-    Serial.print("[TCP_Rx] | ");
+    // // read entire response untill hit newline char
+    // Serial.print("[TCP_Rx] | ");
 
     char val;
     // val = client.readStringUntil('\n');
@@ -153,16 +153,16 @@ void sendRequest(const char* Message) {
 
     if(val != 255){
 
-      Serial.println(val);
-      Serial.println("--------------[SPI_Tx COMM]-----------");
+      // Serial.println(val);
+      // Serial.println("--------------[SPI_Tx COMM]-----------");
 
-      //print the full Spi Tx Buffer
-      Serial.print("[SPI_Tx]  | ");
-      Serial.println(val);
+      // //print the full Spi Tx Buffer
+      // Serial.print("[SPI_Tx]  | ");
+      // Serial.println(val);
       spi_slave_tx_buf[BUFFER_SIZE - 1] = val%48;
     }else{
 
-      Serial.println("No Server Response");
+      // Serial.println("No Server Response");
     }
 
   }
@@ -181,16 +181,16 @@ void loop() {
     // available() returns size of results of transaction,
     // and `spi_slave_rx_buf` is automatically updated
     while (slave.available()) {
-        Serial.println("=====================================[TRANSMISSION BLOCK]===================================");
-        Serial.println("--------------[SPI_Rx COMM]-----------");
+        // Serial.println("=====================================[TRANSMISSION BLOCK]===================================");
+        // Serial.println("--------------[SPI_Rx COMM]-----------");
         
-        //print the full Spi Rx Buffer
-        Serial.print("[SPI_Rx]  | ");
-        for(int i=0; i < slave.size(); i++){
-          int val = spi_slave_rx_buf[i];
-          printf("%d | ", val);
-        }
-        printf("\n");
+        // //print the full Spi Rx Buffer
+        // Serial.print("[SPI_Rx]  | ");
+        // for(int i=0; i < slave.size(); i++){
+        //   int val = spi_slave_rx_buf[i];
+        //   printf("%d | ", val);
+        // }
+        // printf("\n");
 
 
         int check_bit = 0;
@@ -210,10 +210,10 @@ void loop() {
           //buffer for the Json Data
           char PostData[256];
 
-          //Format the Json Data
-          sprintf(PostData, "{\"timestamp\":\"%s\", \"device_id\":\"Cozzy\", \"total_steps\":%d, \"heading\":%d, \"pos_x\":%f, \"pos_y\":%f}", currentTime, step_count, heading, fx, fy);
-          Serial.print("[SPI->MSG] | ");
-          Serial.println(PostData);
+          // //Format the Json Data
+          sprintf(PostData, "{\"timestamp\":\"%s\", \"device_id\":\"TestDevice#2\", \"total_steps\":%d, \"heading\":%d, \"pos_x\":%f, \"pos_y\":%f}", currentTime, step_count, heading, fx, fy);
+          // Serial.print("[SPI->MSG] | ");
+          // Serial.println(PostData);
 
           //send the formatted string
           sendRequest(PostData);
