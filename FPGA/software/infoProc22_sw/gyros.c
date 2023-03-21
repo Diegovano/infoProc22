@@ -22,7 +22,7 @@
 #define TAPS_MAG 20
 #define MSEC_SUM_TIMEOUT 5
 #define MSEC_UART_TX_TIMEOUT 5
-#define MSEC_ESP_TX_TIMEOUT 200
+#define MSEC_ESP_TX_TIMEOUT 1000
 #define STRIDE_LENGTH 0.73
 
 #define INTEGRATE_ON_BOARD false
@@ -226,6 +226,43 @@ void compass_direction(float *samples_x,float* samples_y,int count){
 
 // ====================================
 //
+// ESP  SEND DIRECTIONS
+//
+// ====================================
+
+void esp_communicate(){
+    int send_heading = (int)(heading_roll*57.3 +180.0);
+    unsigned int * ptr_x = &location.x;
+    unsigned int * ptr_y = &location.y;
+    send[0] = (alt_u8) (stepcount >> 8);
+    send[1] = (alt_u8) (stepcount);
+    send[2] = (alt_u8) (*ptr_x >> 24);
+    send[3] = (alt_u8) (*ptr_x >> 16);
+    send[4] = (alt_u8) (*ptr_x >> 8);
+    send[5] = (alt_u8) (*ptr_x);
+    send[6] = (alt_u8) (*ptr_y >> 24);
+    send[7] = (alt_u8) (*ptr_y >> 16);
+    send[8] = (alt_u8) (*ptr_y >> 8);
+    send[9] = (alt_u8) (*ptr_y);
+    send[10] = (alt_u8) send_heading;
+    //printf("%d | ",(int)(57.3*heading_roll+180.0));
+
+    int length = alt_avalon_spi_command(SPI_BASE, 0, SEND_BUFFER_SIZE, send, SEND_BUFFER_SIZE + RECV_BUFFER_SIZE, recv, 0);
+
+    // printf("%d | ", recv[0]);
+    // printf("\n");
+
+    leaderboardPos = recv[0];
+
+    // if(recv[0] != 0){
+    //   char buffer[5]; 
+    //   itoa(recv[0], buffer, 10);
+    //   hex_write_left(buffer);
+    // }
+}
+
+// ====================================
+//
 // INTERRUPT CALLBACKS
 //
 // ====================================
@@ -255,34 +292,7 @@ void timeout_isr() {
   #else
 
   if (timer % MSEC_ESP_TX_TIMEOUT == 0) {
-    int send_heading = (int)(heading_roll*57.3 +180.0);
-    unsigned int * ptr_x = &location.x;
-    unsigned int * ptr_y = &location.y;
-    send[0] = (alt_u8) (stepcount >> 8);
-    send[1] = (alt_u8) (stepcount);
-    send[2] = (alt_u8) (*ptr_x >> 24);
-    send[3] = (alt_u8) (*ptr_x >> 16);
-    send[4] = (alt_u8) (*ptr_x >> 8);
-    send[5] = (alt_u8) (*ptr_x);
-    send[6] = (alt_u8) (*ptr_y >> 24);
-    send[7] = (alt_u8) (*ptr_y >> 16);
-    send[8] = (alt_u8) (*ptr_y >> 8);
-    send[9] = (alt_u8) (*ptr_y);
-    send[10] = (alt_u8) send_heading;
-    //printf("%d | ",(int)(57.3*heading_roll+180.0));
 
-    int length = alt_avalon_spi_command(SPI_BASE, 0, SEND_BUFFER_SIZE, send, SEND_BUFFER_SIZE + RECV_BUFFER_SIZE, recv, 0);
-
-    // printf("%d | ", recv[0]);
-    // printf("\n");
-
-    leaderboardPos = recv[0];
-
-    // if(recv[0] != 0){
-    //   char buffer[5]; 
-    //   itoa(recv[0], buffer, 10);
-    //   hex_write_left(buffer);
-    // }
   }
 
   if (timer % MSEC_UART_TX_TIMEOUT == 0) {
@@ -291,6 +301,7 @@ void timeout_isr() {
       char buffer[5]; 
       location.x += STRIDE_LENGTH*sin(heading_roll);
       location.y += STRIDE_LENGTH*cos(heading_roll);
+      esp_communicate();
       itoa(++stepcount, buffer, 10);
       hex_write_left("   ");
       hex_write_right(buffer);
