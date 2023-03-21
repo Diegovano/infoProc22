@@ -4,7 +4,7 @@ import boto3
 dynamodb = boto3.resource('dynamodb' , region_name='us-east-1')
 
 # Get a reference to the table
-table = dynamodb.Table('Patrick_saidDeviceIds')
+table = dynamodb.Table('di_data10')
 
 # Scan the table and print each item
 response = table.scan()
