@@ -13,6 +13,8 @@ FPGA/.qsys_edit
 FPGA/software/infoProc22_sw/obj
 **/*_bsp/**/*
 
+**/*.npy
+
 **/.vscode
 
 **/*.sopcinfo

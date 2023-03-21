@@ -38,6 +38,7 @@ alt_u32 timer = 0;
 int level;
 int pulse; 
 int Lightshift;
+int leaderboardPos = 0;
 float heading_roll;
 
 alt_u8 recv[RECV_BUFFER_SIZE + SEND_BUFFER_SIZE] = {0};
@@ -167,11 +168,11 @@ void magnetometer_read(alt_16 *x, alt_16 *y, alt_16 *z, alt_u8 *ready){
 void bias_mag(){
   dim mag_max;
   dim mag_min;
-  mag_max.x=-0xffff;mag_max.y=-0xffff;mag_max.z=-0xffff;mag_min.x=0xffff;mag_min.y=0xffff;mag_min.z=0xffff;
+  mag_max.x=-0xffff; mag_max.y = -0xffff; mag_max.z = -0xffff; mag_min.x = 0xffff; mag_min.y = 0xffff; mag_min.z = 0xffff;
   alt_16 x_read_mag, y_read_mag, z_read_mag;
   alt_u8 ready;
   hex_write_left(" ROTATE SLOWLY =]");
-  for(int i = 0;i<10000;i++){
+  for(int i = 0; i < 10000; i++){
     magnetometer_read(&x_read_mag, &y_read_mag, &z_read_mag,&ready);
     if(x_read_mag > mag_max.x) mag_max.x = x_read_mag;
     if(x_read_mag < mag_min.x) mag_min.x = x_read_mag;
@@ -180,14 +181,14 @@ void bias_mag(){
     if(z_read_mag > mag_max.z) mag_max.z = z_read_mag;
     if(z_read_mag < mag_min.z) mag_min.z = z_read_mag;
   }
-  mag_bias.x = (mag_max.x + mag_min.x)/2; 
-  mag_bias.y = (mag_max.y + mag_min.y)/2; 
-  mag_bias.z = (mag_max.z + mag_min.z)/2;
+  mag_bias.x = (mag_max.x + mag_min.x) / 2; 
+  mag_bias.y = (mag_max.y + mag_min.y) / 2; 
+  mag_bias.z = (mag_max.z + mag_min.z) / 2;
 }
 
 void compass_heading(float *samples_x,float* samples_y){
   float sum_x = 0 ,sum_y = 0;
-  for(int i = 0;i < TAPS_MAG;i++){
+  for(int i = 0; i < TAPS_MAG; i++) {
     sum_x += samples_x[i];
     sum_y += samples_y[i];
   }
@@ -228,12 +229,13 @@ void compass_direction(float *samples_x,float* samples_y,int count){
 // INTERRUPT CALLBACKS
 //
 // ====================================
+
 void timeout_isr() {
   int switches = IORD_16DIRECT(SWITCH_BASE,0); //switches
   IOWR_ALTERA_AVALON_TIMER_STATUS(TIMER_BASE, 0); // reset interrupt
   timer++;
   Lightshift++;
-  if (Lightshift % 1000 == 0) shift7seg(); 
+  if (Lightshift % 500 == 0) shift7seg(); 
   // pulse LED 10
   if (timer % 1000 < 100) pulse = 1; 
   else pulse = 0;
@@ -271,11 +273,10 @@ void timeout_isr() {
 
     int length = alt_avalon_spi_command(SPI_BASE, 0, SEND_BUFFER_SIZE, send, SEND_BUFFER_SIZE + RECV_BUFFER_SIZE, recv, 0);
 
-    if(recv[0] != 0){
-      printf("%d | ", recv[0]);
-      printf("\n");
-    }
+    // printf("%d | ", recv[0]);
+    // printf("\n");
 
+    leaderboardPos = recv[0];
 
     // if(recv[0] != 0){
     //   char buffer[5]; 
@@ -345,6 +346,11 @@ void sys_timer_isr() {
   } else {
       pwm++;
   }
+
+  // display leaderboard position
+  if (leaderboardPos == 255) leaderboardPos = 0; // sometimes on first connection, 255 is received
+  if (leaderboardPos == 0) led_write(0);
+  else led_write(1 << (leaderboardPos - 1));
 }
 
 // ====================================
@@ -352,7 +358,6 @@ void sys_timer_isr() {
 // INTERRUPT SETUP
 //
 // ====================================
-
 
 void led_timer_init(void (*isr)(void*, long unsigned int)) {
   IOWR_ALTERA_AVALON_TIMER_CONTROL(LED_TIMER_BASE, 0x0003);
