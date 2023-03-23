@@ -219,23 +219,14 @@ while True:
 				dataset = toydataset(dataa2)
 				a_to_x_test_loader = DataLoader(TensorDataset(torch.tensor([[o[0]] for o in dataset]), torch.tensor([[o[1]] for o in dataset], dtype=torch.float32)), batch_size=BATCH_SIZE, shuffle=False, num_workers=N_WORKERS)
 				concept_logits = the_model.predict(a_to_x_test_loader)
-				print("FUCKIGN PREDICITION==============")
+				print("PREDICITION==============")
 				print(concept_logits)
 				print("=================================")
 				print(device_ids[j])
-				
-			# 	response = table.update_item(
-			# 	Key={
-			# 			'device_id': device_ids[j],
-			# 			'timestamp': timestamp,
-			# 			},
-			# 	UpdateExpression='SET',
-			# 	ExpressionAttributeNames={'x-cordinate': str((concept_logits[0,0].item()))},
-			# 	ExpressionAttributeValues={'y-cordinate': str(concept_logits[0,1].item())}
-			# )	
+		
 				print(timestamp['S'])
 				update_response = update_points(device_id[j],timestamp['S'])
-				print("Update movie succeeded:")
+				print("Update  succeeded:")
 				pprint(update_response)
 				print(concept_logits)
 				prev = data_array[4][0]
@@ -243,20 +234,8 @@ while True:
 		j += 1
 
 		if len(data) > 0:
-			print("Chang you dumbass")
+			print("Chang you")
 			data_array = np.array(data)
 			print(data_array)
 			
-	# response = table.update_item(
-	# 			Key={
-	# 				'device_id': device_id[j],
-	# 				'timestamp': timestamp,
-	# 			},
-	# 			UpdateExpression="set x-cordinate=:r, y-cordinate=:p",
-	# 			ExpressionAttributeValues={
-	# 				':r': str(concept_logits[0,0].item()),
-	# 				':p': str(concept_logits[0,1].item()),
-	# 			},
-	# 			ReturnValues="UPDATED_NEW"
-	# corey rico corey rico corey rico corey rico corey rico corey rico corey rico corey rico corey rico corey rico corey rico
-	#If a person named Corey has explicitly expressed that they would like to be called Rico or have given you permission to call them Rico, then it would be appropriate to do so. However, if you are unsure whether they are comfortable with this nickname or have not been given permission to call them Rico, it's best to use their given name or ask if they have a preferred nickname. It's important to respect people's wishes when it comes to how they would like to be addressed.
+	

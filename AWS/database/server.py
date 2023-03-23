@@ -61,13 +61,11 @@ def create_table_basic(table_name, dynamodb = None):
     if not dynamodb:
         dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
     
-    # Check if table already exists
     table_exists = False
     for table in dynamodb.tables.all():
         if table.name == table_name:
             print(f"Table '{table_name}' already exists")
             return table
-    # If table does not exist, create it
     if not table_exists:
         table = dynamodb.create_table(
             TableName=table_name,
@@ -99,8 +97,8 @@ def add_item(table_name, input_json, dynamodb=None):
     {
         "timestamp": "YYYY-MM-DD HH:MM:SS.ssssss",
         "device_id" : <string>
-         "change_step": <int>,
-         "direction": <int>,
+        "change_step": <int>,
+        "direction": <int>,
     }
     """
     if not dynamodb:
@@ -111,7 +109,7 @@ def add_item(table_name, input_json, dynamodb=None):
         input_dict = json.loads(input_json)
              
     except json.JSONDecodeError:  
-        return f"Error: invalid input JSON format"
+        return f"Iinvalid JSON format"
      
     required_keys = ['timestamp', 'device_id','total_steps', 'heading']
     if not all(key in input_dict for key in required_keys):
@@ -124,8 +122,8 @@ def add_item(table_name, input_json, dynamodb=None):
         'heading' : decimal.Decimal(str(input_dict['heading'])),
         'pos_x': decimal.Decimal(str(input_dict['pos_x'])),
         'pos_y': decimal.Decimal(str(input_dict['pos_y'])),
-        'xcordinate': 0,
-        'ycordinate': 0, 
+        'xcordinate': 0, #we update value in querydata.py - measurements from neural network
+        'ycordinate': 0,  #we update value in quarydata.py - measurements from neural network
         }
 
     response = table.put_item(Item=item)
@@ -144,7 +142,7 @@ def add_item_basic(table_name, input_dict, dynamodb=None):
     # Check that required keys are present in the input dictionary
     required_keys = ['device_id']
     if not all(key in input_dict for key in required_keys):
-        return f"Error: missing one or more required keys: {required_keys}"
+        return f"Missing one or more required keys: {required_keys}"
 
     # Construct the item to be added to the table
     item = {
@@ -173,7 +171,7 @@ def last_total_steps(device_id):
         'Limit': 1
     }
     response = dynamodb.query(**query_params)
-
+# function to acquire last steps, for leader board. not actually needed as we can just query last data
     if len(response['Items']) > 0:
         last_total_steps = int(response['Items'][0]['total_steps']['N'])
         
@@ -181,7 +179,7 @@ def last_total_steps(device_id):
     
         return last_total_steps
     else:
-        print("No data found for the specified device id.")
+        print("No data for this device id.")
         return 0
 
 #select a server port
@@ -211,8 +209,6 @@ def threaded_client(connections):
     while True:
         try:
             cmsg = connections.recv(256)
-            #if not cmsg:
-            #    break
             buff += cmsg
             if b'\n' in buff:
                 
@@ -246,7 +242,7 @@ def threaded_client(connections):
                                 response_msg="69".encode()
                                 print("shit balls")
                         else:
-                            response_msg = (str(index+1)+"\n").encode()
+                            response_msg = (str(index+1)).encode()
                         connections.send(response_msg)
                         #print(response)
                     except json.decoder.JSONDecodeError:
@@ -274,29 +270,3 @@ except KeyboardInterrupt:
        connection.close()
     print("bye <3")
 
-
-
-
-
-#  sockets = [welcome_socket]  # list of sockets to monitor
-# clients = {}  # dictionary of client sockets and their addresses
-
-# while True:
-#     readable, _, _ = select.select(sockets, [], [])  # wait for a socket to be ready to read
-#     for sock in readable:
-#         if sock is welcome_socket:  # new client connection
-#             connection_socket, caddr = sock.accept()
-#             sockets.append(connection_socket)
-#             clients[connection_socket] = caddr
-#             print('New client connected:', caddr)
-#         else:  # existing client data received
-#             cmsg = sock.recv(1024)
-#             if not cmsg:  # client disconnected
-#                 sock.close()
-#                 sockets.remove(sock)
-#                 del clients[sock]
-#                 print('Client disconnected:', clients[sock])
-#             else:  # process client data
-#                 decoded_data = json.loads(cmsg.decode())
-#                 print('Received from', clients[sock], ':', decoded_data)
-#                 response = add_item(table_name, json.dumps(decoded_data), dynamodb)  
